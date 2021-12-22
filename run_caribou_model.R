@@ -390,7 +390,7 @@ for (iteration in iterationSet) {
         preppedData = list(refRast = plcRas, 
                            esker = eskerRas, 
                            natDist = natDistRas,
-                           anthroDist = anthroDistRas,
+                           anthroDist = combineAnthro,
                            linFeat = linFeatRas, 
                            projectPolyOrig = projectPoltmp),
         caribouRange = renamedRange,       # Caribou Range

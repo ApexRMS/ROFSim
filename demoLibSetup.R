@@ -2,14 +2,15 @@
 
 library(rsyncrosim)
 
-cDir = "C:/Users/HughesJo/Documents/InitialWork/OntarioFarNorth/RoFModel/UI"
+cDir = "C:/Users/endicotts/Documents/gitprojects/ROFSyncSim/"
 
-sourceData = "C:/Users/HughesJo/Documents/InitialWork/OntarioFarNorth/RoFData/Used"
+sourceData = "C:/Users/endicotts/Documents/gitprojects/ROFSyncSim/ROFDemo_data"
 
 #inPath = "C:/Users/HughesJo/Documents/InitialWork/OntarioFarNorth/RoFModel/SpaDESOutputs/v1/ROF_CCSM4_RCP45_res125_rep01/outputs/ROF_CCSM4_RCP45_res125_rep01/ROF_CCSM4_RCP45_res125_rep01.qs"
 iters = c("ROF_CNRM-ESM2-1_SSP585_res125_rep02","ROF_CNRM-ESM2-1_SSP370_res125_rep04")
 
 inPath = c("C:/Users/HughesJo/Documents/InitialWork/OntarioFarNorth/RoFModel/SpaDESOutputs/v2/iter/iter.qs")
+
 libName = "ROFDemo5"
 
 #delete(paste0(cDir,"/",libName,".ssim"),force=T)
@@ -32,7 +33,7 @@ saveDatasheet(cProj,cc,name=cSheet)
 datasheet(cProj,cSheet)
 
 cSheet="ROFSim_Rasters"
-cc=data.frame(Name=c("Caribou Ranges","Harvest","Anthropogenic Disturbance","Natural Disturbances","Provincial Land Cover","Stand Age","Leading Type"))
+cc=data.frame(Name=c("Caribou Ranges","Harvest","Anthropogenic Disturbance","Natural Disturbances","Provincial Land Cover","Stand Age","Leading Type", "Linear Features", "Eskers"))
 cc$SpaDESSimObject[cc$Name=="Stand Age"]="standAgeMap"
 saveDatasheet(cProj,cc,name=cSheet)
 datasheet(cProj,cSheet,optional=T)
@@ -52,6 +53,56 @@ cc=data.frame(MinimumIteration=1,MaximumIteration=1,MinimumTimestep=2020,Maximum
 saveDatasheet(rcScn,cc,name=cSheet)
 datasheet(rcScn,cSheet,optional=T)
 
+# scenario - data - anthro #===============================
+datScn <- scenario(cProj, "data - anthro")
+
+cSheet <- "core_Pipeline"
+cc <- data.frame(StageNameID = "Prepare Spatial Data", RunOrder = 1)
+saveDatasheet(datScn, cc, name = cSheet)
+
+cSheet="ROFSim_RasterFile"
+cc=data.frame(RastersID="Natural Disturbances",Filename=file.path(sourceData,"fireAFFES2020_250.tif"))
+cc=rbind(cc,data.frame(RastersID="Harvest",Filename=file.path(sourceData,"harvMNRF2018_250.tif")))
+cc=rbind(cc,data.frame(RastersID="Provincial Land Cover",Filename=file.path(sourceData,"plc250.tif")))
+cc$Timestep=NA
+cc=rbind(cc,data.frame(RastersID="Anthropogenic Disturbance",Timestep=2040,
+                       Filename=file.path(sourceData,"mines_ras250.tif")))
+saveDatasheet(datScn,cc,name=cSheet,append=F)
+datasheet(datScn,cSheet)
+
+cSheet="ROFSim_ExternalFile"
+cc=data.frame(PolygonsID="Eskers",File=file.path(sourceData,"/esker.shp"))
+cc=rbind(cc,data.frame(PolygonsID="Linear Features",File=file.path(sourceData,"/rail.shp")))
+cc=rbind(cc,data.frame(PolygonsID="Linear Features",File=file.path(sourceData,"/util2020.shp")))
+cc=rbind(cc,data.frame(PolygonsID="Ranges",File=file.path(sourceData,"/project_ranges.shp")))
+cc$Timestep=NA
+cc=rbind(cc,data.frame(PolygonsID="Linear Features",Timestep=2020,File=file.path(sourceData,"/road_ORNMNRFROF2020.shp")))
+cc=rbind(cc,data.frame(PolygonsID="Linear Features",Timestep=2030,File=file.path(sourceData,"/RoF_MNRF_2020.shp")))
+saveDatasheet(datScn,cc,name=cSheet,append=F)
+datasheet(datScn,cSheet)
+
+# scenario - data - current #===============================
+datScnCur <- scenario(cProj, "data - current")
+
+cSheet <- "core_Pipeline"
+cc <- data.frame(StageNameID = "Prepare Spatial Data", RunOrder = 1)
+saveDatasheet(datScnCur, cc, name = cSheet)
+
+cSheet="ROFSim_RasterFile"
+cc=data.frame(RastersID="Natural Disturbances",Filename=paste0(sourceData,"/fireAFFES2020_250.tif"))
+cc=rbind(cc,data.frame(RastersID="Harvest",Filename=paste0(sourceData,"/harvMNRF2018_250.tif")))
+cc=rbind(cc,data.frame(RastersID="Provincial Land Cover",Filename=paste0(sourceData,"/plc250.tif")))
+saveDatasheet(datScnCur,cc,name=cSheet,append=F)
+datasheet(datScnCur,cSheet)
+
+cSheet="ROFSim_ExternalFile"
+cc=data.frame(PolygonsID="Eskers",File=paste0(sourceData,"/esker.shp"))
+cc=rbind(cc,data.frame(PolygonsID="Linear Features",File=paste0(sourceData,"/rail.shp")))
+cc=rbind(cc,data.frame(PolygonsID="Linear Features",File=paste0(sourceData,"/util2020.shp")))
+cc=rbind(cc,data.frame(PolygonsID="Ranges",File=paste0(sourceData,"/project_ranges.shp")))
+cc=rbind(cc,data.frame(PolygonsID="Linear Features",File=paste0(sourceData,"/road_ORNMNRFROF2020.shp")))
+saveDatasheet(datScnCur,cc,name=cSheet,append=F)
+datasheet(datScnCur,cSheet)
 
 ############
 #scenarios - caribou - current
@@ -70,7 +121,15 @@ saveDatasheet(cbScn,cc,name=cSheet)
 datasheet(cbScn,cSheet)
 
 cSheet="ROFSim_CaribouDataSource"
-cc=data.frame(LandCoverRasterID="Provincial Land Cover",ProjectShapeFileID="Ranges",EskerShapeFileID="Eskers",LinearFeatureShapeFileID="Linear Features",NaturalDisturbanceRasterID="Natural Disturbances",HarvestRasterID="Harvest",AnthropogenicRasterID="Anthropogenic Disturbance")
+cc <- data.frame(LandCoverRasterID = "Provincial Land Cover", 
+                 ProjectShapeFileID = "Ranges",
+                 EskerShapeFileID = "Eskers", 
+                 LinearFeatureShapeFileID = "Linear Features", 
+                 NaturalDisturbanceRasterID = "Natural Disturbances",
+                 HarvestRasterID = "Harvest", 
+                 AnthropogenicRasterID = "Anthropogenic Disturbance",
+                 EskerRasterID = "Eskers",
+                 LinearFeatureRasterID = "Linear Features")
 saveDatasheet(cbScn,cc,name=cSheet)
 datasheet(cbScn,cSheet)
 
@@ -79,55 +138,60 @@ cc=data.frame(RunDistMetrics=T,RunCaribouHabitat=T,RunDemographicModel=T,padProj
 saveDatasheet(cbScn,cc,name=cSheet)
 datasheet(cbScn,cSheet)
 
-cSheet="ROFSim_RasterFile"
-cc=data.frame(RastersID="Natural Disturbances",Filename=paste0(sourceData,"/fireAFFES2020_250.tif"))
-cc=rbind(cc,data.frame(RastersID="Harvest",Filename=paste0(sourceData,"/harvMNRF2018_250.tif")))
-cc=rbind(cc,data.frame(RastersID="Provincial Land Cover",Filename=paste0(sourceData,"/plc250.tif")))
-saveDatasheet(cbScn,cc,name=cSheet,append=F)
-datasheet(cbScn,cSheet)
-
-cSheet="ROFSim_ExternalFile"
-cc=data.frame(PolygonsID="Eskers",File=paste0(sourceData,"/esker.shp"))
-cc=rbind(cc,data.frame(PolygonsID="Linear Features",File=paste0(sourceData,"/rail.shp")))
-cc=rbind(cc,data.frame(PolygonsID="Linear Features",File=paste0(sourceData,"/util2020.shp")))
-cc=rbind(cc,data.frame(PolygonsID="Ranges",File=paste0(sourceData,"/project_ranges.shp")))
-cc=rbind(cc,data.frame(PolygonsID="Linear Features",File=paste0(sourceData,"/road_ORNMNRFROF2020.shp")))
-saveDatasheet(cbScn,cc,name=cSheet,append=F)
-datasheet(cbScn,cSheet)
+# Use prepared data now
+# cSheet="ROFSim_RasterFile"
+# cc=data.frame(RastersID="Natural Disturbances",Filename=paste0(sourceData,"/fireAFFES2020_250.tif"))
+# cc=rbind(cc,data.frame(RastersID="Harvest",Filename=paste0(sourceData,"/harvMNRF2018_250.tif")))
+# cc=rbind(cc,data.frame(RastersID="Provincial Land Cover",Filename=paste0(sourceData,"/plc250.tif")))
+# saveDatasheet(cbScn,cc,name=cSheet,append=F)
+# datasheet(cbScn,cSheet)
+# 
+# cSheet="ROFSim_ExternalFile"
+# cc=data.frame(PolygonsID="Eskers",File=paste0(sourceData,"/esker.shp"))
+# cc=rbind(cc,data.frame(PolygonsID="Linear Features",File=paste0(sourceData,"/rail.shp")))
+# cc=rbind(cc,data.frame(PolygonsID="Linear Features",File=paste0(sourceData,"/util2020.shp")))
+# cc=rbind(cc,data.frame(PolygonsID="Ranges",File=paste0(sourceData,"/project_ranges.shp")))
+# cc=rbind(cc,data.frame(PolygonsID="Linear Features",File=paste0(sourceData,"/road_ORNMNRFROF2020.shp")))
+# saveDatasheet(cbScn,cc,name=cSheet,append=F)
+# datasheet(cbScn,cSheet)
 
 dependency(cbScn,rcScn)
+dependency(cbScn, datScnCur)
 datasheet(cbScn)
 
-cbRes = run(cbScn)
+#cbRes = run(cbScn)
 
 
 #############
 #Caribou with change in anthropogenic disturbance
 cbcScn = scenario(cProj,"Caribou - anthro",sourceScenario=cbScn)
 dependency(cbcScn,rcScn,remove=T,force=T)
+dependency(cbcScn,datScnCur,remove=T,force=T)
 dependency(cbcScn,rcScnS)
+dependency(cbcScn,datScn)
 
-cSheet="ROFSim_RasterFile"
-cc=data.frame(RastersID="Natural Disturbances",Filename=paste0(sourceData,"/fireAFFES2020_250.tif"))
-cc=rbind(cc,data.frame(RastersID="Harvest",Filename=paste0(sourceData,"/harvMNRF2018_250.tif")))
-cc=rbind(cc,data.frame(RastersID="Provincial Land Cover",Filename=paste0(sourceData,"/plc250.tif")))
-cc$Timestep=NA
-cc=rbind(cc,data.frame(RastersID="Anthropogenic Disturbance",Timestep=2040,Filename=paste0(sourceData,"/mines_ras250.tif")))
-saveDatasheet(cbcScn,cc,name=cSheet,append=F)
-datasheet(cbcScn,cSheet)
+# Moved to prep data
+# cSheet="ROFSim_RasterFile"
+# cc=data.frame(RastersID="Natural Disturbances",Filename=paste0(sourceData,"/fireAFFES2020_250.tif"))
+# cc=rbind(cc,data.frame(RastersID="Harvest",Filename=paste0(sourceData,"/harvMNRF2018_250.tif")))
+# cc=rbind(cc,data.frame(RastersID="Provincial Land Cover",Filename=paste0(sourceData,"/plc250.tif")))
+# cc$Timestep=NA
+# cc=rbind(cc,data.frame(RastersID="Anthropogenic Disturbance",Timestep=2040,Filename=paste0(sourceData,"/mines_ras250.tif")))
+# saveDatasheet(cbcScn,cc,name=cSheet,append=F)
+# datasheet(cbcScn,cSheet)
+# 
+# cSheet="ROFSim_ExternalFile"
+# cc=data.frame(PolygonsID="Eskers",File=paste0(sourceData,"/esker.shp"))
+# cc=rbind(cc,data.frame(PolygonsID="Linear Features",File=paste0(sourceData,"/rail.shp")))
+# cc=rbind(cc,data.frame(PolygonsID="Linear Features",File=paste0(sourceData,"/util2020.shp")))
+# cc=rbind(cc,data.frame(PolygonsID="Ranges",File=paste0(sourceData,"/project_ranges.shp")))
+# cc$Timestep=NA
+# cc=rbind(cc,data.frame(PolygonsID="Linear Features",Timestep=2020,File=paste0(sourceData,"/road_ORNMNRFROF2020.shp")))
+# cc=rbind(cc,data.frame(PolygonsID="Linear Features",Timestep=2030,File=paste0(sourceData,"/RoF_MNRF_2020.shp")))
+# saveDatasheet(cbcScn,cc,name=cSheet,append=F)
+# datasheet(cbcScn,cSheet)
 
-cSheet="ROFSim_ExternalFile"
-cc=data.frame(PolygonsID="Eskers",File=paste0(sourceData,"/esker.shp"))
-cc=rbind(cc,data.frame(PolygonsID="Linear Features",File=paste0(sourceData,"/rail.shp")))
-cc=rbind(cc,data.frame(PolygonsID="Linear Features",File=paste0(sourceData,"/util2020.shp")))
-cc=rbind(cc,data.frame(PolygonsID="Ranges",File=paste0(sourceData,"/project_ranges.shp")))
-cc$Timestep=NA
-cc=rbind(cc,data.frame(PolygonsID="Linear Features",Timestep=2020,File=paste0(sourceData,"/road_ORNMNRFROF2020.shp")))
-cc=rbind(cc,data.frame(PolygonsID="Linear Features",Timestep=2030,File=paste0(sourceData,"/RoF_MNRF_2020.shp")))
-saveDatasheet(cbcScn,cc,name=cSheet,append=F)
-datasheet(cbcScn,cSheet)
-
-cbcRes = run(cbcScn)
+#cbcRes = run(cbcScn)
 
 ############
 #scenarios - import SpaDES
@@ -173,15 +237,23 @@ lccRes = run(siScn)
 #Spades caribou scenario
 cbsScn = scenario(cProj,"Caribou - spades - anthro",sourceScenario=cbcScn)
 #cbsScn = scenario(cProj,"Caribou - spades - anthro")
-cSheet="ROFSim_RasterFile"
-cc=data.frame(RastersID="Harvest",Filename=paste0(sourceData,"/harvMNRF2018_250.tif"))
-cc$Timestep=NA
-cc=rbind(cc,data.frame(RastersID="Anthropogenic Disturbance",Timestep=2040,Filename=paste0(sourceData,"/mines_ras250.tif")))
-saveDatasheet(cbsScn,cc,name=cSheet,append=F)
-datasheet(cbsScn,cSheet)
+# cSheet="ROFSim_RasterFile"
+# cc=data.frame(RastersID="Harvest",Filename=paste0(sourceData,"/harvMNRF2018_250.tif"))
+# cc$Timestep=NA
+# cc=rbind(cc,data.frame(RastersID="Anthropogenic Disturbance",Timestep=2040,Filename=paste0(sourceData,"/mines_ras250.tif")))
+# saveDatasheet(cbsScn,cc,name=cSheet,append=F)
+# datasheet(cbsScn,cSheet)
 
 cSheet="ROFSim_CaribouDataSource"
-cc=data.frame(LandCoverRasterID="Provincial Land Cover",ProjectShapeFileID="Ranges",EskerShapeFileID="Eskers",LinearFeatureShapeFileID="Linear Features",NaturalDisturbanceRasterID="Stand Age",HarvestRasterID="Harvest",AnthropogenicRasterID="Anthropogenic Disturbance")
+cc=data.frame(LandCoverRasterID="Provincial Land Cover",
+              ProjectShapeFileID="Ranges",
+              EskerShapeFileID="Eskers",
+              LinearFeatureShapeFileID="Linear Features",
+              NaturalDisturbanceRasterID="Stand Age",
+              HarvestRasterID="Harvest",
+              AnthropogenicRasterID="Anthropogenic Disturbance",
+              EskerRasterID = "Eskers",
+              LinearFeatureRasterID = "Linear Features")
 saveDatasheet(cbsScn,cc,name=cSheet,append=F)
 datasheet(cbsScn,cSheet)
 
@@ -189,7 +261,7 @@ dependency(cbsScn,spRes)
 dependency(cbsScn,lccRes)
 mergeDependencies(cbsScn)=T
 
-cbsRes = run(cbsScn)
+#cbsRes = run(cbsScn)
 
 ##########
 #add legend to landcover - after map is created in UI
