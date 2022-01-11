@@ -18,6 +18,19 @@ if(!localDebug){
   # Source the helpers
   source(file.path(e$PackageDirectory, "helpers.R"))
   
+  # moved from helpers
+  GLOBAL_Session = session()
+  GLOBAL_Library = ssimLibrary(session = GLOBAL_Session)
+  GLOBAL_Project = project(GLOBAL_Library, project = as.integer(e$ProjectId))
+  GLOBAL_Scenario = scenario(GLOBAL_Library, scenario = as.integer(e$ScenarioId))
+  GLOBAL_RunControl = GetDataSheetExpectData("ROFSim_RunControl", GLOBAL_Scenario)
+  GLOBAL_MaxIteration = GetSingleValueExpectData(GLOBAL_RunControl, "MaximumIteration")
+  GLOBAL_MinIteration = GetSingleValueExpectData(GLOBAL_RunControl, "MinimumIteration")
+  GLOBAL_MinTimestep = GetSingleValueExpectData(GLOBAL_RunControl, "MinimumTimestep")
+  GLOBAL_MaxTimestep = GetSingleValueExpectData(GLOBAL_RunControl, "MaximumTimestep")
+  GLOBAL_TotalIterations = (GLOBAL_MaxIteration - GLOBAL_MinIteration + 1)
+  GLOBAL_TotalTimesteps = (GLOBAL_MaxTimestep - GLOBAL_MinTimestep + 1)
+  
 }else{
   e=list()
   e$PackageDirectory = "C:/Users/HughesJo/Documents/SyncroSim/Packages/ROFSim"
@@ -131,7 +144,7 @@ if(!grepl("M",allParams$CaribouModelOptions$survivalModelNumber)){
 progressBar(type = "begin", totalSteps = length(iterationSet) * length(timestepSet))
 
 # Avoid growing list to help memory allocation time
-habitatUseAll <- vector("list", length = iterationSet)
+habitatUseAll <- vector("list", length = length(iterationSet))
 habitatUseAll <- lapply(habitatUseAll, 
                         function(x){vector("list", length = length(timestepSet))})
 habitatUseAll <- setNames(habitatUseAll, paste0("it_", iterationSet)) %>% 
