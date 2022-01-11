@@ -36,15 +36,15 @@ myDatasheetsNames <- myDatasheetsFiltered$name
 source(file.path(e$PackageDirectory, "makeLCCFromCohortData_helper.R"))
 source(file.path(e$PackageDirectory, "helpers.R"))
 
-names(spadesObject)
-outLCC<-raster("C:/Users/HughesJo/Documents/gitprojects/ChurchillAnalysis/inputNV/Provincial-Landcover-2000/FarNorthLandCover/Version 1.4/TIF Format/New folder/Class/FarNorth_LandCover_Group_RoF.tif")
-
-inRat = levels(outLCC)[[1]]
-
-inRat[1:12,]
-
-# Output classes - in terms of outLCC
-inRat
+#names(spadesObject)
+#outLCC<-raster("C:/Users/HughesJo/Documents/gitprojects/ChurchillAnalysis/inputNV/Provincial-Landcover-2000/FarNorthLandCover/Version 1.4/TIF Format/New folder/Class/FarNorth_LandCover_Group_RoF.tif")
+outLCC <- raster("C:/Users/endicotts/Documents/gitprojects/ROFSyncSim/ROFDemo_data/plc250.tif") 
+# inRat = levels(outLCC)[[1]]
+# 
+# inRat[1:12,]
+# 
+# # Output classes - in terms of outLCC
+# inRat
 
 lccClassTable = data.table(
   standLeading = c("pureCon_dense", "pureCon_open", "pureCon_sparse",
@@ -53,6 +53,7 @@ lccClassTable = data.table(
   LCCclass = c(1,2,3,
                4,5,6, 
                7,8,9)) # HARDCODED TO MATCH RESOURCE TYPES
+# WHICH RESOURCE TYPES!!? the resource types in caribouMetrics eg 6 = water
 
 #sparseness classes - in terms of SpaDES far north landcover classes
 legendPath <- "."
@@ -123,12 +124,9 @@ LCC05ToResType <- function(FromList, ToVal, landcover){
 # Transfer dir
 tmp <- e$TransferDirectory
 
-# Get empty datasheets
-rasterFiles <- datasheet(mySce, "RasterFile", lookupsAsFactors = FALSE, 
+# Get datasheet
+outputSheet <- datasheet(mySce, "RasterFile", lookupsAsFactors = FALSE, 
                          empty = TRUE, optional = TRUE)
-
-# Empty output sheet
-outputSheet <- data.frame()
 
 for (theIter in iterationSet){
   #theIter=1
@@ -140,21 +138,6 @@ for (theIter in iterationSet){
   spadesObject=NULL
   spadesObject <- qs::qread(spadesObjectPath)
   
-  preamblePath = strsplit(spadesObjectPath,"/",fixed=T)[[1]]
-  typeBit = preamblePath[length(preamblePath)]
-  preamblePath = preamblePath[1:(length(preamblePath)-2)]
-
-  typeBit = paste0("simOutPreamble_",typeBit)
-  typeBit = gsub("_SSP","_",typeBit,fixed=T)
-  typeBit = strsplit(typeBit,"_",fixed=T)[[1]]
-  typeBit = typeBit[1:(length(typeBit)-2)]  
-  typeBit=paste0(paste(typeBit,collapse="_"),".qs")
-  spadesPreamble<-qs::qread(paste0(c(preamblePath,typeBit),collapse="/"))
-  rstLCC <- spadesPreamble$LCC
-  rm(spadesPreamble)
-  #freq(rstLCC)
-  freq(outLCC)
-    
   # Filter them
   outputs <- outputs(spadesObject) %>% 
     make_paths_relative("outputs") %>% 
@@ -165,6 +148,22 @@ for (theIter in iterationSet){
   # For now, reconstruct the relative paths based on basenames
   outputs$file <- file.path(dirname(spadesObjectPath), basename(outputs$file))
   
+  rm(spadesObject)
+  
+  preamblePath = strsplit(spadesObjectPath,"/",fixed=T)[[1]]
+  typeBit = preamblePath[length(preamblePath)]
+  preamblePath = preamblePath[1:(length(preamblePath)-2)]
+  
+  typeBit = paste0("simOutPreamble_",typeBit)
+  typeBit = gsub("_SSP","_",typeBit,fixed=T)
+  typeBit = strsplit(typeBit,"_",fixed=T)[[1]]
+  typeBit = typeBit[1:(length(typeBit)-2)]
+  typeBit=paste0(paste(typeBit,collapse="_"),".qs")
+  spadesPreamble<-qs::qread(paste0(c(preamblePath,typeBit),collapse="/"))
+  rstLCC <- spadesPreamble$LCC
+  rm(spadesPreamble)
+  #freq(rstLCC)
+  #freq(outLCC)
 
   for (ts in sort(unique(outputs$Timestep))){
     #ts=2020
