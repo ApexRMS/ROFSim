@@ -7,9 +7,12 @@ cDir = "C:/Users/endicotts/Documents/gitprojects/ROFSyncSim/"
 sourceData = "C:/Users/endicotts/Documents/gitprojects/ROFSyncSim/ROFDemo_data"
 
 #inPath = "C:/Users/HughesJo/Documents/InitialWork/OntarioFarNorth/RoFModel/SpaDESOutputs/v1/ROF_CCSM4_RCP45_res125_rep01/outputs/ROF_CCSM4_RCP45_res125_rep01/ROF_CCSM4_RCP45_res125_rep01.qs"
-iters = c("ROF_CNRM-ESM2-1_SSP585_res125_rep02","ROF_CNRM-ESM2-1_SSP370_res125_rep04")
+# iters = c("ROF_CNRM-ESM2-1_SSP585_res125_rep02","ROF_CNRM-ESM2-1_SSP370_res125_rep04")
+# 
+# inPath = c("C:/Users/HughesJo/Documents/InitialWork/OntarioFarNorth/RoFModel/SpaDESOutputs/v2/iter/iter.qs")
 
-inPath = c("C:/Users/HughesJo/Documents/InitialWork/OntarioFarNorth/RoFModel/SpaDESOutputs/v2/iter/iter.qs")
+iters = c("ROF_CNRM-ESM2-1_SSP370_res125_rep03", "ROF_CNRM-ESM2-1_SSP370_res125_rep04")
+inPath = file.path(sourceData, "SpaDESOutputs/iter/iter.qs")
 
 libName = "ROFDemo5"
 
@@ -20,6 +23,11 @@ cLib = ssimLibrary(paste0(cDir,"/",libName),package="ROFSim")
 cProj= project(cLib,"Demo")
 
 datasheet(cProj)
+
+# Make sure the library uses the correct R installation
+rConfig <- datasheet(cLib, name = "core_RConfig")
+rConfig <- addRow(rConfig, c(ExePath = list.files(R.home("bin"), "Rscript", full.names = TRUE)))
+saveDatasheet(cLib, rConfig, name = "core_RConfig")
 
 #TO DO: extract this info from input range map
 cSheet="ROFSim_CaribouRange"
@@ -81,6 +89,8 @@ cc=rbind(cc,data.frame(PolygonsID="Linear Features",Timestep=2030,File=file.path
 saveDatasheet(datScn,cc,name=cSheet,append=F)
 datasheet(datScn,cSheet)
 
+datRes <- run(datScn)
+
 # scenario - data - current #===============================
 datScnCur <- scenario(cProj, "data - current")
 
@@ -104,6 +114,8 @@ cc=rbind(cc,data.frame(PolygonsID="Linear Features",File=paste0(sourceData,"/roa
 saveDatasheet(datScnCur,cc,name=cSheet,append=F)
 datasheet(datScnCur,cSheet)
 
+datResCur <- run(datScnCur)
+beepr::beep()
 ############
 #scenarios - caribou - current
 
@@ -156,7 +168,7 @@ datasheet(cbScn,cSheet)
 # datasheet(cbScn,cSheet)
 
 dependency(cbScn,rcScn)
-dependency(cbScn, datScnCur)
+dependency(cbScn, datResCur)
 datasheet(cbScn)
 
 #cbRes = run(cbScn)
@@ -168,7 +180,7 @@ cbcScn = scenario(cProj,"Caribou - anthro",sourceScenario=cbScn)
 dependency(cbcScn,rcScn,remove=T,force=T)
 dependency(cbcScn,datScnCur,remove=T,force=T)
 dependency(cbcScn,rcScnS)
-dependency(cbcScn,datScn)
+dependency(cbcScn,datRes)
 
 # Moved to prep data
 # cSheet="ROFSim_RasterFile"
@@ -235,7 +247,7 @@ lccRes = run(siScn)
 
 ###############
 #Spades caribou scenario
-cbsScn = scenario(cProj,"Caribou - spades - anthro",sourceScenario=cbcScn)
+cbsScn = scenario(cProj,"Caribou - spades - anthro", sourceScenario=cbcScn)
 #cbsScn = scenario(cProj,"Caribou - spades - anthro")
 # cSheet="ROFSim_RasterFile"
 # cc=data.frame(RastersID="Harvest",Filename=paste0(sourceData,"/harvMNRF2018_250.tif"))
