@@ -122,12 +122,15 @@ linFeatsList <- filter(allParams$ExternalFile, PolygonsID == "Linear Features") 
 
 # add linFeats in 0 Timestep to all the other timesteps
 # this is a lot of copies that will end up on disk... is there a better way?
-linFeatsList <- map(linFeatsList[-which(names(linFeatsList) == "0")],
-                     ~bind_rows(splice(.x, linFeatsList[which(names(linFeatsList) == "0")]))) %>% 
-  map(~mutate(.x, Timestep = max(Timestep), 
-              names = paste0(gsub(" ", "_", PolygonsID), 
-                             "_iter_", Iteration,
-                             "_ts_", Timestep))) 
+if(length(linFeatsList[-which(names(linFeatsList) == "0")]) > 0){
+  linFeatsList <- map(linFeatsList[-which(names(linFeatsList) == "0")],
+                      ~bind_rows(splice(.x, linFeatsList[which(names(linFeatsList) == "0")]))) 
+}
+
+linFeatsList <- linFeatsList %>% map(~mutate(.x, Timestep = max(Timestep), 
+                                             names = paste0(gsub(" ", "_", PolygonsID), 
+                                                            "_iter_", Iteration,
+                                                            "_ts_", Timestep))) 
 
 linFeatsListNames <- linFeatsList %>% splice() %>% bind_rows() %>%
   pull(names) %>% unique()
