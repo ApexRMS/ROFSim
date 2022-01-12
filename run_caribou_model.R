@@ -267,7 +267,8 @@ for (iteration in iterationSet) {
           stop("Caribou range polygons must have a Range column")
         }
       }
-    } 
+    }
+    rm(projectPol1)
     
     # Rename range in expected format
     renamedRange <- rename(allParams$RunCaribouRange, coefRange = CoeffRange)
@@ -383,6 +384,7 @@ for (iteration in iterationSet) {
         
       }
     }
+    rm(fullDist)
     #TO DO: handle polygon inputs for natural disturbance, anthro disturbance, and harvest
     #TO DO: check that disturbanceMetrics calculations handle multiple ranges properly
     #TO DO: accept anthropogenic disturbance polygons or rasters, and behave properly when they are missing.
