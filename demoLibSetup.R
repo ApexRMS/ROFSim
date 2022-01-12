@@ -90,7 +90,7 @@ saveDatasheet(datScn,cc,name=cSheet,append=F)
 datasheet(datScn,cSheet)
 
 datRes <- run(datScn)
-
+# datRes <- scenario(cProj, 4)
 # scenario - data - current #===============================
 datScnCur <- scenario(cProj, "data - current")
 
@@ -115,7 +115,9 @@ saveDatasheet(datScnCur,cc,name=cSheet,append=F)
 datasheet(datScnCur,cSheet)
 
 datResCur <- run(datScnCur)
-beepr::beep()
+
+# datResCur <- scenario(cProj, 6)
+
 ############
 #scenarios - caribou - current
 
@@ -169,6 +171,7 @@ datasheet(cbScn,cSheet)
 
 dependency(cbScn,rcScn)
 dependency(cbScn, datResCur)
+dependency(cbScn, datScnCur)
 datasheet(cbScn)
 
 #cbRes = run(cbScn)
@@ -179,8 +182,10 @@ datasheet(cbScn)
 cbcScn = scenario(cProj,"Caribou - anthro",sourceScenario=cbScn)
 dependency(cbcScn,rcScn,remove=T,force=T)
 dependency(cbcScn,datScnCur,remove=T,force=T)
-dependency(cbcScn,rcScnS)
-dependency(cbcScn,datRes)
+dependency(cbcScn,datResCur,remove=T,force=T)
+dependency(cbcScn, rcScnS)
+dependency(cbcScn, datRes)
+dependency(cbcScn, datScn)
 
 # Moved to prep data
 # cSheet="ROFSim_RasterFile"
@@ -245,8 +250,7 @@ datasheet(siScn,cSheet)
 
 lccRes = run(siScn)
 
-###############
-#Spades caribou scenario
+# Spades caribou scenario ###############
 cbsScn = scenario(cProj,"Caribou - spades - anthro", sourceScenario=cbcScn)
 #cbsScn = scenario(cProj,"Caribou - spades - anthro")
 # cSheet="ROFSim_RasterFile"
@@ -271,6 +275,8 @@ datasheet(cbsScn,cSheet)
 
 dependency(cbsScn,spRes)
 dependency(cbsScn,lccRes)
+dependency(cbsScn, datRes)
+dependency(cbcScn, datScn)
 mergeDependencies(cbsScn)=T
 
 #cbsRes = run(cbsScn)
