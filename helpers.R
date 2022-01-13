@@ -43,7 +43,7 @@ e = ssimEnvironment()
 ## Functions for wildcard
 
 filterInputs <- function(params, iter, ts, useMostRecent=F,min_ts = 1){
-  #params=subset(allParams$RasterFile,!is.na(Timestep));iter=1;ts=2050;min_ts=2020;useMostRecent="RasterID"
+  #params=subset(allParams$RasterFile,is.na(Timestep));iter=1;ts=2050;min_ts=2020;useMostRecent="RastersID"
   # Cases where One or Both columns are missing
   if(!sum(is.element(names(params), "Iteration"))){
     print("No Iteration column")
@@ -70,8 +70,11 @@ filterInputs <- function(params, iter, ts, useMostRecent=F,min_ts = 1){
   prevs <- subset(params, Iteration == iter & Timestep < ts)
   theSubset <- subset(params, Iteration == iter & Timestep == ts)
   
+  noChng <- FALSE
+  
   if((useMostRecent!=F)&(nrow(prevs)>0)){
     if(nrow(theSubset)==0){
+      noChng <- TRUE
       missingLayers=unique(prevs[[useMostRecent]])
     }else{
       missingLayers=setdiff(prevs[[useMostRecent]],theSubset[[useMostRecent]])
@@ -93,6 +96,7 @@ filterInputs <- function(params, iter, ts, useMostRecent=F,min_ts = 1){
       }
     }
   }
+  theSubset$noChng <- noChng
   
   return(theSubset)
 }

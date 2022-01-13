@@ -213,7 +213,7 @@ for (theIter in iterationSet){
     rm(cohort_data);rm(pixelGroupMap);rm(updated_LCC_tmp);rm(updated_Leading_tmp)
     #sort(sapply(ls(), function(x) {object.size(get(x)) }))
     
-    tmpsheet <- data.frame(RastersID = c("Provincial Land Cover","Leading Type"), 
+    tmpsheet <- data.frame(RastersID = c("SpaDES Land Cover","SpaDES Leading Type"), 
                            Filename = c(filePathLCC,filePathLeading) 
                            )
     tmpsheet$Iteration = theIter 
