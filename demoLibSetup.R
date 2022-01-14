@@ -295,15 +295,16 @@ if(doRun){
 # data preparation for SpaDES #=================================
 datScnSpds <- scenario(cProj, "data - anthro - SpaDES")
 dependency(datScnSpds, lccRes)
-
+dependency(datScnSpds, spRes)
 if(doRun){
   cSheet <- "core_Pipeline"
   cc <- data.frame(StageNameID = "Prepare Spatial Data", RunOrder = 1)
   saveDatasheet(datScnSpds, cc, name = cSheet)
   
   cSheet="ROFSim_RasterFile"
-  # get raster file sheet from lccRes and then add to it
+  # get raster file sheet from lccRes and spRes and then add to it
   cc <- datasheet(lccRes, "RasterFile")
+  cc <- rbind(cc, datasheet(spRes, "RasterFile"))
   cc <- rbind(cc, data.frame(TransformerID = NA, Iteration = NA, Timestep = NA,
                              RastersID = "Harvest", 
                              Filename = file.path(sourceData, "harvMNRF2018_250.tif")))
