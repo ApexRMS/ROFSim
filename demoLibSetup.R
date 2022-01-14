@@ -2,10 +2,8 @@
 
 library(rsyncrosim)
 
-# should scenarios be run or should existing results be used? Using existing
-# results does not seem to work. It messes up some connections possibly this is
-# my using the same datasheet as input and output RasterFiles coming to bite me
-doRun <- TRUE
+# should scenarios be run or should existing results be used? 
+doRun <- FALSE
 
 cDir = "C:/Users/endicotts/Documents/gitprojects/ROFSyncSim/"
 
@@ -144,7 +142,7 @@ if(doRun){
   }
 }
 
-#scenarios - caribou - current ############
+# scenarios - caribou - current ############
 
 cbScn = scenario(cProj,"Caribou - current")
 
@@ -200,10 +198,10 @@ if(doRun){
   datasheet(cbScn)
   
   
-  #cbRes = run(cbScn)
+  cbRes = run(cbScn)
 }
 
-#Caribou with change in anthropogenic disturbance #############
+# scenarios - caribou - anthropogenic disturbance #############
 cbcScn = scenario(cProj,"Caribou - anthro",sourceScenario=cbScn)
 # seems like results dependencies don't stay if just do the above
 dependency(cbcScn,rcScn,remove=T,force=T)
@@ -233,10 +231,10 @@ if(doRun){
   # saveDatasheet(cbcScn,cc,name=cSheet,append=F)
   # datasheet(cbcScn,cSheet)
   
-  #cbcRes = run(cbcScn)
+  cbcRes = run(cbcScn)
 }
 
-#scenarios - import SpaDES ############
+# scenarios - import SpaDES ############
 spScn = scenario(cProj,"Import SpaDES")
 
 if(doRun){
@@ -272,7 +270,7 @@ if(doRun){
 
 #TO DO: figure out how to landcover legend table, stand age colours, etc.
 
-#scenarios - make LCC from SpaDES ############
+# scenarios - make LCC from SpaDES ############
 siScn = scenario(cProj,"Make LCC from SpaDES")
 
 if(doRun){
@@ -341,9 +339,9 @@ if(doRun){
 }
 
 # datResSpds <- scenario(cProj, 17)
-# Spades caribou scenario ###############
+# scenarios - caribou - spades - anthro ###############
 cbsScn = scenario(cProj,"Caribou - spades - anthro", sourceScenario = cbcScn)
-dependency(cbcScn,datRes,remove=T,force=T)
+dependency(cbsScn,datRes,remove=T,force=T)
 dependency(cbsScn, datResSpds)
 mergeDependencies(cbsScn)=T
 
@@ -370,7 +368,7 @@ if(doRun){
   saveDatasheet(cbsScn,cc,name=cSheet,append=F)
   datasheet(cbsScn,cSheet)
   
-  #cbsRes = run(cbsScn)
+  cbsRes = run(cbsScn)
 }
 
 
