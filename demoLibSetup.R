@@ -3,21 +3,27 @@
 library(rsyncrosim)
 
 # should scenarios be run or should existing results be used? 
-doRun <- FALSE
+doRun <- F
 
-cDir = "C:/Users/endicotts/Documents/gitprojects/ROFSyncSim/"
-
-sourceData = "C:/Users/endicotts/Documents/gitprojects/ROFSyncSim/ROFDemo_data"
+#cDir = "C:/Users/endicotts/Documents/gitprojects/ROFSyncSim/"
+#sourceData = "C:/Users/endicotts/Documents/gitprojects/ROFSyncSim/ROFDemo_data"
+#iters = c("ROF_CNRM-ESM2-1_SSP370_res125_rep03", "ROF_CNRM-ESM2-1_SSP370_res125_rep04")
+#inPath = file.path(sourceData, "SpaDESOutputs/iter/iter.qs")
+#sourceData2 = sourceData
 
 #inPath = "C:/Users/HughesJo/Documents/InitialWork/OntarioFarNorth/RoFModel/SpaDESOutputs/v1/ROF_CCSM4_RCP45_res125_rep01/outputs/ROF_CCSM4_RCP45_res125_rep01/ROF_CCSM4_RCP45_res125_rep01.qs"
 # iters = c("ROF_CNRM-ESM2-1_SSP585_res125_rep02","ROF_CNRM-ESM2-1_SSP370_res125_rep04")
 # 
 # inPath = c("C:/Users/HughesJo/Documents/InitialWork/OntarioFarNorth/RoFModel/SpaDESOutputs/v2/iter/iter.qs")
 
-iters = c("ROF_CNRM-ESM2-1_SSP370_res125_rep03", "ROF_CNRM-ESM2-1_SSP370_res125_rep04")
-inPath = file.path(sourceData, "SpaDESOutputs/iter/iter.qs")
+sourceData = "C:/Users/HughesJo/Documents/InitialWork/OntarioFarNorth/RoFModel/"
+cDir = paste0(sourceData,"/UI")
+iters = c("ROF_CNRM-ESM2-1_SSP585_res125_rep02", "ROF_CNRM-ESM2-1_SSP370_res125_rep04")
+inPath = file.path(sourceData, "SpaDESOutputs/v2/iter/iter.qs")
+sourceData2 = "C:/Users/HughesJo/Documents/InitialWork/OntarioFarNorth/ROFData"
 
-libName = "ROFDemo5"
+
+libName = "ROFDemoS"
 
 #delete(paste0(cDir,"/",libName,".ssim"),force=T)
 
@@ -78,23 +84,23 @@ if(doRun){
   saveDatasheet(datScn, cc, name = cSheet)
   
   cSheet="ROFSim_RasterFile"
-  cc=data.frame(RastersID="Natural Disturbances",Filename=file.path(sourceData,"fireAFFES2020_250.tif"))
-  cc=rbind(cc,data.frame(RastersID="Harvest",Filename=file.path(sourceData,"harvMNRF2018_250.tif")))
-  cc=rbind(cc,data.frame(RastersID="Provincial Land Cover",Filename=file.path(sourceData,"plc250.tif")))
+  cc=data.frame(RastersID="Natural Disturbances",Filename=file.path(sourceData2,"fireAFFES2020_250.tif"))
+  cc=rbind(cc,data.frame(RastersID="Harvest",Filename=file.path(sourceData2,"harvMNRF2018_250.tif")))
+  cc=rbind(cc,data.frame(RastersID="Provincial Land Cover",Filename=file.path(sourceData2,"plc250.tif")))
   cc$Timestep=NA
   cc=rbind(cc,data.frame(RastersID="Anthropogenic Disturbance",Timestep=2040,
-                         Filename=file.path(sourceData,"mines_ras250.tif")))
+                         Filename=file.path(sourceData2,"mines_ras250.tif")))
   saveDatasheet(datScn,cc,name=cSheet,append=F)
   datasheet(datScn,cSheet)
   
   cSheet="ROFSim_ExternalFile"
-  cc=data.frame(PolygonsID="Eskers",File=file.path(sourceData,"/esker.shp"))
-  cc=rbind(cc,data.frame(PolygonsID="Linear Features",File=file.path(sourceData,"/rail.shp")))
-  cc=rbind(cc,data.frame(PolygonsID="Linear Features",File=file.path(sourceData,"/util2020.shp")))
-  cc=rbind(cc,data.frame(PolygonsID="Ranges",File=file.path(sourceData,"/project_ranges.shp")))
+  cc=data.frame(PolygonsID="Eskers",File=file.path(sourceData2,"/esker.shp"))
+  cc=rbind(cc,data.frame(PolygonsID="Linear Features",File=file.path(sourceData2,"/rail.shp")))
+  cc=rbind(cc,data.frame(PolygonsID="Linear Features",File=file.path(sourceData2,"/util2020.shp")))
+  cc=rbind(cc,data.frame(PolygonsID="Ranges",File=file.path(sourceData2,"/project_ranges.shp")))
   cc$Timestep=NA
-  cc=rbind(cc,data.frame(PolygonsID="Linear Features",Timestep=2020,File=file.path(sourceData,"/road_ORNMNRFROF2020.shp")))
-  cc=rbind(cc,data.frame(PolygonsID="Linear Features",Timestep=2030,File=file.path(sourceData,"/RoF_MNRF_2020.shp")))
+  cc=rbind(cc,data.frame(PolygonsID="Linear Features",Timestep=2020,File=file.path(sourceData2,"/road_ORNMNRFROF2020.shp")))
+  cc=rbind(cc,data.frame(PolygonsID="Linear Features",Timestep=2030,File=file.path(sourceData2,"/RoF_MNRF_2020.shp")))
   saveDatasheet(datScn,cc,name=cSheet,append=F)
   datasheet(datScn,cSheet)
   
@@ -117,18 +123,18 @@ if(doRun){
   saveDatasheet(datScnCur, cc, name = cSheet)
   
   cSheet="ROFSim_RasterFile"
-  cc=data.frame(RastersID="Natural Disturbances",Filename=paste0(sourceData,"/fireAFFES2020_250.tif"))
-  cc=rbind(cc,data.frame(RastersID="Harvest",Filename=paste0(sourceData,"/harvMNRF2018_250.tif")))
-  cc=rbind(cc,data.frame(RastersID="Provincial Land Cover",Filename=paste0(sourceData,"/plc250.tif")))
+  cc=data.frame(RastersID="Natural Disturbances",Filename=paste0(sourceData2,"/fireAFFES2020_250.tif"))
+  cc=rbind(cc,data.frame(RastersID="Harvest",Filename=paste0(sourceData2,"/harvMNRF2018_250.tif")))
+  cc=rbind(cc,data.frame(RastersID="Provincial Land Cover",Filename=paste0(sourceData2,"/plc250.tif")))
   saveDatasheet(datScnCur,cc,name=cSheet,append=F)
   datasheet(datScnCur,cSheet)
   
   cSheet="ROFSim_ExternalFile"
-  cc=data.frame(PolygonsID="Eskers",File=paste0(sourceData,"/esker.shp"))
-  cc=rbind(cc,data.frame(PolygonsID="Linear Features",File=paste0(sourceData,"/rail.shp")))
-  cc=rbind(cc,data.frame(PolygonsID="Linear Features",File=paste0(sourceData,"/util2020.shp")))
-  cc=rbind(cc,data.frame(PolygonsID="Ranges",File=paste0(sourceData,"/project_ranges.shp")))
-  cc=rbind(cc,data.frame(PolygonsID="Linear Features",File=paste0(sourceData,"/road_ORNMNRFROF2020.shp")))
+  cc=data.frame(PolygonsID="Eskers",File=paste0(sourceData2,"/esker.shp"))
+  cc=rbind(cc,data.frame(PolygonsID="Linear Features",File=paste0(sourceData2,"/rail.shp")))
+  cc=rbind(cc,data.frame(PolygonsID="Linear Features",File=paste0(sourceData2,"/util2020.shp")))
+  cc=rbind(cc,data.frame(PolygonsID="Ranges",File=paste0(sourceData2,"/project_ranges.shp")))
+  cc=rbind(cc,data.frame(PolygonsID="Linear Features",File=paste0(sourceData2,"/road_ORNMNRFROF2020.shp")))
   saveDatasheet(datScnCur,cc,name=cSheet,append=F)
   datasheet(datScnCur,cSheet)
   
@@ -307,25 +313,25 @@ if(doRun){
   cc <- rbind(cc, datasheet(spRes, "RasterFile"))
   cc <- rbind(cc, data.frame(TransformerID = NA, Iteration = NA, Timestep = NA,
                              RastersID = "Harvest", 
-                             Filename = file.path(sourceData, "harvMNRF2018_250.tif")))
+                             Filename = file.path(sourceData2, "harvMNRF2018_250.tif")))
   # still need this to use as refRast in prep data
   cc <- rbind(cc, data.frame(TransformerID = NA, Iteration = NA, Timestep = NA,
                              RastersID = "Provincial Land Cover",
-                             Filename = file.path(sourceData, "plc250.tif")))
+                             Filename = file.path(sourceData2, "plc250.tif")))
   cc <- rbind(cc, data.frame(TransformerID = NA, Iteration = NA, Timestep = 2040,
                              RastersID = "Anthropogenic Disturbance", 
-                             Filename = file.path(sourceData, "mines_ras250.tif")))
+                             Filename = file.path(sourceData2, "mines_ras250.tif")))
   saveDatasheet(datScnSpds, cc, name = cSheet, append = F)
   datasheet(datScnSpds, cSheet)
   
   cSheet="ROFSim_ExternalFile"
-  cc=data.frame(PolygonsID="Eskers",File=file.path(sourceData,"/esker.shp"))
-  cc=rbind(cc,data.frame(PolygonsID="Linear Features",File=file.path(sourceData,"/rail.shp")))
-  cc=rbind(cc,data.frame(PolygonsID="Linear Features",File=file.path(sourceData,"/util2020.shp")))
-  cc=rbind(cc,data.frame(PolygonsID="Ranges",File=file.path(sourceData,"/project_ranges.shp")))
+  cc=data.frame(PolygonsID="Eskers",File=file.path(sourceData2,"/esker.shp"))
+  cc=rbind(cc,data.frame(PolygonsID="Linear Features",File=file.path(sourceData2,"/rail.shp")))
+  cc=rbind(cc,data.frame(PolygonsID="Linear Features",File=file.path(sourceData2,"/util2020.shp")))
+  cc=rbind(cc,data.frame(PolygonsID="Ranges",File=file.path(sourceData2,"/project_ranges.shp")))
   cc$Timestep=NA
-  cc=rbind(cc,data.frame(PolygonsID="Linear Features",Timestep=2020,File=file.path(sourceData,"/road_ORNMNRFROF2020.shp")))
-  cc=rbind(cc,data.frame(PolygonsID="Linear Features",Timestep=2030,File=file.path(sourceData,"/RoF_MNRF_2020.shp")))
+  cc=rbind(cc,data.frame(PolygonsID="Linear Features",Timestep=2020,File=file.path(sourceData2,"/road_ORNMNRFROF2020.shp")))
+  cc=rbind(cc,data.frame(PolygonsID="Linear Features",Timestep=2030,File=file.path(sourceData2,"/RoF_MNRF_2020.shp")))
   saveDatasheet(datScnSpds,cc,name=cSheet,append=TRUE)
   datasheet(datScnSpds,cSheet)
   

@@ -153,7 +153,12 @@ distMetricsAll <- habitatUseAll
 distMetricsTabAll <- habitatUseAll
 popMetricsTabAll <- habitatUseAll
 
+
+allParams$RasterFile=unique(allParams$RasterFile)
+allParams$ExternalFile=unique(allParams$ExternalFile)
+
 for (iteration in iterationSet) {
+  #iteration=1
   if(is.null(doDemography)||doDemography){
     #demographic rates from disturbance metrics.
     #regression model parameter sampling is done once for each population at the beginning of the simulation 
