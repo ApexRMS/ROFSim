@@ -127,10 +127,12 @@ if(length(linFeatsList[-which(names(linFeatsList) == "0")]) > 0){
                       ~bind_rows(splice(.x, linFeatsList[which(names(linFeatsList) == "0")]))) 
 }
 
-linFeatsList <- linFeatsList %>% map(~mutate(.x, Timestep = max(Timestep), 
-                                             names = paste0(gsub(" ", "_", PolygonsID), 
-                                                            "_iter_", Iteration,
-                                                            "_ts_", Timestep))) 
+linFeatsList <- linFeatsList %>% 
+  map(~mutate(.x, 
+              Timestep = max(ifelse(Timestep == 0, NA_real_, Timestep)), 
+              names = paste0(gsub(" ", "_", PolygonsID), 
+                             "_iter_", Iteration,
+                             "_ts_", Timestep))) 
 
 linFeatsListNames <- linFeatsList %>% splice() %>% bind_rows() %>%
   pull(names) %>% unique()
