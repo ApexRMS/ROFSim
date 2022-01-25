@@ -3,27 +3,21 @@
 library(rsyncrosim)
 
 # should scenarios be run or should existing results be used? 
-doRun <- F
+doRun <- FALSE
 
-#cDir = "C:/Users/endicotts/Documents/gitprojects/ROFSyncSim/"
-#sourceData = "C:/Users/endicotts/Documents/gitprojects/ROFSyncSim/ROFDemo_data"
-#iters = c("ROF_CNRM-ESM2-1_SSP370_res125_rep03", "ROF_CNRM-ESM2-1_SSP370_res125_rep04")
-#inPath = file.path(sourceData, "SpaDESOutputs/iter/iter.qs")
-#sourceData2 = sourceData
+cDir = "C:/Users/endicotts/Documents/gitprojects/ROFSyncSim/"
+sourceData = "C:/Users/endicotts/Documents/gitprojects/ROFSyncSim/ROFDemo_data"
+iters = c("ROF_CNRM-ESM2-1_SSP370_res125_rep03", "ROF_CNRM-ESM2-1_SSP370_res125_rep04")
+inPath = file.path(sourceData, "SpaDESOutputs/iter/iter.qs")
+sourceData2 = sourceData
 
-#inPath = "C:/Users/HughesJo/Documents/InitialWork/OntarioFarNorth/RoFModel/SpaDESOutputs/v1/ROF_CCSM4_RCP45_res125_rep01/outputs/ROF_CCSM4_RCP45_res125_rep01/ROF_CCSM4_RCP45_res125_rep01.qs"
-# iters = c("ROF_CNRM-ESM2-1_SSP585_res125_rep02","ROF_CNRM-ESM2-1_SSP370_res125_rep04")
-# 
-# inPath = c("C:/Users/HughesJo/Documents/InitialWork/OntarioFarNorth/RoFModel/SpaDESOutputs/v2/iter/iter.qs")
+# sourceData = "C:/Users/HughesJo/Documents/InitialWork/OntarioFarNorth/RoFModel/"
+# cDir = paste0(sourceData,"/UI")
+# iters = c("ROF_CNRM-ESM2-1_SSP585_res125_rep02", "ROF_CNRM-ESM2-1_SSP370_res125_rep04")
+# inPath = file.path(sourceData, "SpaDESOutputs/v2/iter/iter.qs")
+# sourceData2 = "C:/Users/HughesJo/Documents/InitialWork/OntarioFarNorth/ROFData"
 
-sourceData = "C:/Users/HughesJo/Documents/InitialWork/OntarioFarNorth/RoFModel/"
-cDir = paste0(sourceData,"/UI")
-iters = c("ROF_CNRM-ESM2-1_SSP585_res125_rep02", "ROF_CNRM-ESM2-1_SSP370_res125_rep04")
-inPath = file.path(sourceData, "SpaDESOutputs/v2/iter/iter.qs")
-sourceData2 = "C:/Users/HughesJo/Documents/InitialWork/OntarioFarNorth/ROFData"
-
-
-libName = "ROFDemoS"
+libName = "ROFDemoS7"
 
 #delete(paste0(cDir,"/",libName,".ssim"),force=T)
 
@@ -75,7 +69,80 @@ if(doRun){
   saveDatasheet(rcScn,cc,name=cSheet)
   datasheet(rcScn,cSheet,optional=T)
 }
+
+# scenario - data - context #===============================
+#Used in multiple scenarios - so specify here once, and pass info as dependency.
+#Note I am not running this scenario - passing on the inputs, rather than the outputs.
+#Following the principle of never specifying the same piece of input info in more than one place.
+#One could change the input landcover or polygon layer here, and it would update everywhere throughout the library.
+datContextScn <- scenario(cProj, "data - context")
+if(doRun){
+  cSheet <- "core_Pipeline"
+  cc <- data.frame(StageNameID = "Prepare Spatial Data", RunOrder = 1)
+  saveDatasheet(datContextScn, cc, name = cSheet)
+  
+  cSheet="ROFSim_RasterFile"
+  cc=data.frame(RastersID="Provincial Land Cover",Filename=file.path(sourceData2,"plc250.tif"))
+  saveDatasheet(datContextScn,cc,name=cSheet,append=F)
+  datasheet(datContextScn,cSheet)
+  
+  cSheet="ROFSim_ExternalFile"
+  cc=data.frame(PolygonsID="Ranges",File=file.path(sourceData2,"/project_ranges.shp"))
+  saveDatasheet(datContextScn,cc,name=cSheet,append=F)
+  datasheet(datContextScn,cSheet)
+} 
+
+# scenario - data - base linear #===============================
+#Again, used in multiple data processing scenarios. Not specifying the same input info more than once.
+datLinearScn <- scenario(cProj, "data - base linear")
+if(doRun){
+  cSheet <- "core_Pipeline"
+  cc <- data.frame(StageNameID = "Prepare Spatial Data", RunOrder = 1)
+  saveDatasheet(datLinearScn, cc, name = cSheet)
+  
+  cSheet="ROFSim_ExternalFile"
+  cc=data.frame(PolygonsID="Linear Features",File=file.path(sourceData2,"/rail.shp"))
+  cc=rbind(cc,data.frame(PolygonsID="Linear Features",File=file.path(sourceData2,"/util2020.shp")))
+  saveDatasheet(datLinearScn,cc,name=cSheet,append=F)
+  datasheet(datLinearScn,cSheet)
+} 
+
+# scenario - data - baseline #===============================
+datShareScn <- scenario(cProj, "data - baseline")
+if(doRun){
+  cSheet <- "core_Pipeline"
+  cc <- data.frame(StageNameID = "Prepare Spatial Data", RunOrder = 1)
+  saveDatasheet(datShareScn, cc, name = cSheet)
+  
+  cSheet="ROFSim_RasterFile"
+  cc=data.frame(RastersID="Natural Disturbances",Filename=file.path(sourceData2,"fireAFFES2020_250.tif"))
+  cc=rbind(cc,data.frame(RastersID="Harvest",Filename=file.path(sourceData2,"harvMNRF2018_250.tif")))
+  cc$Timestep=NA
+  saveDatasheet(datShareScn,cc,name=cSheet,append=F)
+  datasheet(datShareScn,cSheet)
+  
+  cSheet="ROFSim_ExternalFile"
+  cc=data.frame(PolygonsID="Eskers",File=file.path(sourceData2,"/esker.shp"))
+  saveDatasheet(datShareScn,cc,name=cSheet,append=F)
+  datasheet(datShareScn,cSheet)
+  
+  dependency(datShareScn,datContextScn)
+  dependency(datShareScn,datLinearScn)
+  mergeDependencies(datShareScn)=T
+  
+  datShareRes <- run(datShareScn)
+} else {
+  # get results scnID if it exists
+  scnID <- subset(allRes, grepl("data - baseline \\(", allRes$name))$scenarioId
+  
+  if(length(scnID) > 0){
+    datShareRes <- scenario(cProj, max(scnID))
+  }
+}
+
 # scenario - data - anthro #===============================
+#Note I am only adding the 2040 and 2030 data here. No need to repeat the 2020 baseline calculations. 
+
 datScn <- scenario(cProj, "data - anthro")
 
 if(doRun){
@@ -84,25 +151,19 @@ if(doRun){
   saveDatasheet(datScn, cc, name = cSheet)
   
   cSheet="ROFSim_RasterFile"
-  cc=data.frame(RastersID="Natural Disturbances",Filename=file.path(sourceData2,"fireAFFES2020_250.tif"))
-  cc=rbind(cc,data.frame(RastersID="Harvest",Filename=file.path(sourceData2,"harvMNRF2018_250.tif")))
-  cc=rbind(cc,data.frame(RastersID="Provincial Land Cover",Filename=file.path(sourceData2,"plc250.tif")))
-  cc$Timestep=NA
-  cc=rbind(cc,data.frame(RastersID="Anthropogenic Disturbance",Timestep=2040,
-                         Filename=file.path(sourceData2,"mines_ras250.tif")))
+  cc=data.frame(RastersID="Anthropogenic Disturbance",Timestep=2040,
+                Filename=file.path(sourceData2,"mines_ras250.tif"))
   saveDatasheet(datScn,cc,name=cSheet,append=F)
   datasheet(datScn,cSheet)
   
   cSheet="ROFSim_ExternalFile"
-  cc=data.frame(PolygonsID="Eskers",File=file.path(sourceData2,"/esker.shp"))
-  cc=rbind(cc,data.frame(PolygonsID="Linear Features",File=file.path(sourceData2,"/rail.shp")))
-  cc=rbind(cc,data.frame(PolygonsID="Linear Features",File=file.path(sourceData2,"/util2020.shp")))
-  cc=rbind(cc,data.frame(PolygonsID="Ranges",File=file.path(sourceData2,"/project_ranges.shp")))
-  cc$Timestep=NA
-  cc=rbind(cc,data.frame(PolygonsID="Linear Features",Timestep=2020,File=file.path(sourceData2,"/road_ORNMNRFROF2020.shp")))
-  cc=rbind(cc,data.frame(PolygonsID="Linear Features",Timestep=2030,File=file.path(sourceData2,"/RoF_MNRF_2020.shp")))
+  cc=data.frame(PolygonsID="Linear Features",Timestep=2030,File=file.path(sourceData2,"/RoF_MNRF_2020.shp"))
   saveDatasheet(datScn,cc,name=cSheet,append=F)
   datasheet(datScn,cSheet)
+  
+  dependency(datScn,datContextScn)
+  dependency(datScn,datLinearScn)
+  mergeDependencies(datScn)=T
   
   datRes <- run(datScn)
 } else {
@@ -111,40 +172,6 @@ if(doRun){
   
   if(length(scnID) > 0){
     datRes <- scenario(cProj, max(scnID))
-  }
-}
-
-# scenario - data - current #===============================
-datScnCur <- scenario(cProj, "data - current")
-
-if(doRun){
-  cSheet <- "core_Pipeline"
-  cc <- data.frame(StageNameID = "Prepare Spatial Data", RunOrder = 1)
-  saveDatasheet(datScnCur, cc, name = cSheet)
-  
-  cSheet="ROFSim_RasterFile"
-  cc=data.frame(RastersID="Natural Disturbances",Filename=paste0(sourceData2,"/fireAFFES2020_250.tif"))
-  cc=rbind(cc,data.frame(RastersID="Harvest",Filename=paste0(sourceData2,"/harvMNRF2018_250.tif")))
-  cc=rbind(cc,data.frame(RastersID="Provincial Land Cover",Filename=paste0(sourceData2,"/plc250.tif")))
-  saveDatasheet(datScnCur,cc,name=cSheet,append=F)
-  datasheet(datScnCur,cSheet)
-  
-  cSheet="ROFSim_ExternalFile"
-  cc=data.frame(PolygonsID="Eskers",File=paste0(sourceData2,"/esker.shp"))
-  cc=rbind(cc,data.frame(PolygonsID="Linear Features",File=paste0(sourceData2,"/rail.shp")))
-  cc=rbind(cc,data.frame(PolygonsID="Linear Features",File=paste0(sourceData2,"/util2020.shp")))
-  cc=rbind(cc,data.frame(PolygonsID="Ranges",File=paste0(sourceData2,"/project_ranges.shp")))
-  cc=rbind(cc,data.frame(PolygonsID="Linear Features",File=paste0(sourceData2,"/road_ORNMNRFROF2020.shp")))
-  saveDatasheet(datScnCur,cc,name=cSheet,append=F)
-  datasheet(datScnCur,cSheet)
-  
-  datResCur <- run(datScnCur)
-} else {
-  # get results scnID if it exists
-  scnID <- subset(allRes, grepl("data - current \\(", allRes$name))$scenarioId
-  
-  if(length(scnID) > 0){
-    datResCur <- scenario(cProj, max(scnID))
   }
 }
 
@@ -182,25 +209,8 @@ if(doRun){
   saveDatasheet(cbScn,cc,name=cSheet)
   datasheet(cbScn,cSheet)
   
-  # Use prepared data now
-  # cSheet="ROFSim_RasterFile"
-  # cc=data.frame(RastersID="Natural Disturbances",Filename=paste0(sourceData,"/fireAFFES2020_250.tif"))
-  # cc=rbind(cc,data.frame(RastersID="Harvest",Filename=paste0(sourceData,"/harvMNRF2018_250.tif")))
-  # cc=rbind(cc,data.frame(RastersID="Provincial Land Cover",Filename=paste0(sourceData,"/plc250.tif")))
-  # saveDatasheet(cbScn,cc,name=cSheet,append=F)
-  # datasheet(cbScn,cSheet)
-  # 
-  # cSheet="ROFSim_ExternalFile"
-  # cc=data.frame(PolygonsID="Eskers",File=paste0(sourceData,"/esker.shp"))
-  # cc=rbind(cc,data.frame(PolygonsID="Linear Features",File=paste0(sourceData,"/rail.shp")))
-  # cc=rbind(cc,data.frame(PolygonsID="Linear Features",File=paste0(sourceData,"/util2020.shp")))
-  # cc=rbind(cc,data.frame(PolygonsID="Ranges",File=paste0(sourceData,"/project_ranges.shp")))
-  # cc=rbind(cc,data.frame(PolygonsID="Linear Features",File=paste0(sourceData,"/road_ORNMNRFROF2020.shp")))
-  # saveDatasheet(cbScn,cc,name=cSheet,append=F)
-  # datasheet(cbScn,cSheet)
-  
   dependency(cbScn,rcScn)
-  dependency(cbScn, datResCur)
+  dependency(cbScn, datShareRes)
   datasheet(cbScn)
   
   
@@ -209,33 +219,13 @@ if(doRun){
 
 # scenarios - caribou - anthropogenic disturbance #############
 cbcScn = scenario(cProj,"Caribou - anthro",sourceScenario=cbScn)
-# seems like results dependencies don't stay if just do the above
-dependency(cbcScn,rcScn,remove=T,force=T)
-dependency(cbcScn,datResCur,remove=T,force=T)
-dependency(cbcScn, rcScnS)
-dependency(cbcScn, datRes)
 
 if(doRun){
-  # Moved to prep data
-  # cSheet="ROFSim_RasterFile"
-  # cc=data.frame(RastersID="Natural Disturbances",Filename=paste0(sourceData,"/fireAFFES2020_250.tif"))
-  # cc=rbind(cc,data.frame(RastersID="Harvest",Filename=paste0(sourceData,"/harvMNRF2018_250.tif")))
-  # cc=rbind(cc,data.frame(RastersID="Provincial Land Cover",Filename=paste0(sourceData,"/plc250.tif")))
-  # cc$Timestep=NA
-  # cc=rbind(cc,data.frame(RastersID="Anthropogenic Disturbance",Timestep=2040,Filename=paste0(sourceData,"/mines_ras250.tif")))
-  # saveDatasheet(cbcScn,cc,name=cSheet,append=F)
-  # datasheet(cbcScn,cSheet)
-  # 
-  # cSheet="ROFSim_ExternalFile"
-  # cc=data.frame(PolygonsID="Eskers",File=paste0(sourceData,"/esker.shp"))
-  # cc=rbind(cc,data.frame(PolygonsID="Linear Features",File=paste0(sourceData,"/rail.shp")))
-  # cc=rbind(cc,data.frame(PolygonsID="Linear Features",File=paste0(sourceData,"/util2020.shp")))
-  # cc=rbind(cc,data.frame(PolygonsID="Ranges",File=paste0(sourceData,"/project_ranges.shp")))
-  # cc$Timestep=NA
-  # cc=rbind(cc,data.frame(PolygonsID="Linear Features",Timestep=2020,File=paste0(sourceData,"/road_ORNMNRFROF2020.shp")))
-  # cc=rbind(cc,data.frame(PolygonsID="Linear Features",Timestep=2030,File=paste0(sourceData,"/RoF_MNRF_2020.shp")))
-  # saveDatasheet(cbcScn,cc,name=cSheet,append=F)
-  # datasheet(cbcScn,cSheet)
+  dependency(cbcScn,rcScn,remove=T,force=T)
+  dependency(cbcScn, rcScnS)
+  dependency(cbScn, datShareRes)
+  dependency(cbcScn, datRes)
+  mergeDependencies(cbcScn)=T
   
   cbcRes = run(cbcScn)
 }
@@ -300,40 +290,16 @@ if(doRun){
 
 # data preparation for SpaDES #=================================
 datScnSpds <- scenario(cProj, "data - anthro - SpaDES")
-dependency(datScnSpds, lccRes)
-dependency(datScnSpds, spRes)
+
 if(doRun){
   cSheet <- "core_Pipeline"
   cc <- data.frame(StageNameID = "Prepare Spatial Data", RunOrder = 1)
   saveDatasheet(datScnSpds, cc, name = cSheet)
   
-  cSheet="ROFSim_RasterFile"
-  # get raster file sheet from lccRes and spRes and then add to it
-  cc <- datasheet(lccRes, "RasterFile")
-  cc <- rbind(cc, datasheet(spRes, "RasterFile"))
-  cc <- rbind(cc, data.frame(TransformerID = NA, Iteration = NA, Timestep = NA,
-                             RastersID = "Harvest", 
-                             Filename = file.path(sourceData2, "harvMNRF2018_250.tif")))
-  # still need this to use as refRast in prep data
-  cc <- rbind(cc, data.frame(TransformerID = NA, Iteration = NA, Timestep = NA,
-                             RastersID = "Provincial Land Cover",
-                             Filename = file.path(sourceData2, "plc250.tif")))
-  cc <- rbind(cc, data.frame(TransformerID = NA, Iteration = NA, Timestep = 2040,
-                             RastersID = "Anthropogenic Disturbance", 
-                             Filename = file.path(sourceData2, "mines_ras250.tif")))
-  saveDatasheet(datScnSpds, cc, name = cSheet, append = F)
-  datasheet(datScnSpds, cSheet)
-  
-  cSheet="ROFSim_ExternalFile"
-  cc=data.frame(PolygonsID="Eskers",File=file.path(sourceData2,"/esker.shp"))
-  cc=rbind(cc,data.frame(PolygonsID="Linear Features",File=file.path(sourceData2,"/rail.shp")))
-  cc=rbind(cc,data.frame(PolygonsID="Linear Features",File=file.path(sourceData2,"/util2020.shp")))
-  cc=rbind(cc,data.frame(PolygonsID="Ranges",File=file.path(sourceData2,"/project_ranges.shp")))
-  cc$Timestep=NA
-  cc=rbind(cc,data.frame(PolygonsID="Linear Features",Timestep=2020,File=file.path(sourceData2,"/road_ORNMNRFROF2020.shp")))
-  cc=rbind(cc,data.frame(PolygonsID="Linear Features",Timestep=2030,File=file.path(sourceData2,"/RoF_MNRF_2020.shp")))
-  saveDatasheet(datScnSpds,cc,name=cSheet,append=TRUE)
-  datasheet(datScnSpds,cSheet)
+  dependency(datScnSpds,datContextScn)
+  dependency(datScnSpds, lccRes)
+  dependency(datScnSpds, spRes)
+  mergeDependencies(datScnSpds) <- TRUE
   
   datResSpds <- run(datScnSpds)
 } else {
@@ -345,22 +311,13 @@ if(doRun){
   }
 }
 
-# datResSpds <- scenario(cProj, 17)
 # scenarios - caribou - spades - anthro ###############
 cbsScn = scenario(cProj,"Caribou - spades - anthro", sourceScenario = cbcScn)
-dependency(cbsScn,datRes,remove=T,force=T)
-dependency(cbsScn, datResSpds)
-mergeDependencies(cbsScn)=T
 
 if(doRun){
-
-  #cbsScn = scenario(cProj,"Caribou - spades - anthro")
-  # cSheet="ROFSim_RasterFile"
-  # cc=data.frame(RastersID="Harvest",Filename=paste0(sourceData,"/harvMNRF2018_250.tif"))
-  # cc$Timestep=NA
-  # cc=rbind(cc,data.frame(RastersID="Anthropogenic Disturbance",Timestep=2040,Filename=paste0(sourceData,"/mines_ras250.tif")))
-  # saveDatasheet(cbsScn,cc,name=cSheet,append=F)
-  # datasheet(cbsScn,cSheet)
+  # already depends on datRes and datShareRes from cbcScn
+  dependency(cbsScn, datResSpds)
+  mergeDependencies(cbsScn)=T
   
   cSheet="ROFSim_CaribouDataSource"
   cc=data.frame(LandCoverRasterID="SpaDES Land Cover",
@@ -377,7 +334,6 @@ if(doRun){
   
   cbsRes = run(cbsScn)
 }
-
 
 
 #add legend to landcover - after map is created in UI ##########
