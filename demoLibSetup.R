@@ -3,7 +3,7 @@
 library(rsyncrosim)
 
 # should scenarios be run or should existing results be used? 
-doRun <- FALSE
+doRun <- TRUE
 
 cDir = "C:/Users/endicotts/Documents/gitprojects/ROFSyncSim/"
 sourceData = "C:/Users/endicotts/Documents/gitprojects/ROFSyncSim/ROFDemo_data"

@@ -198,7 +198,9 @@ for (iteration in iterationSet) {
                                    iteration, timestep, min(timestepSet),useMostRecent="PolygonsID")
     
     # skip landscape calcs if no change since previous timestep
-    if(all(c(InputRastersT$noChng, InputVectorsT$noChng)) && timestep != min(timestepSet)){
+    if((all(nrow(InputRastersT) == 0, nrow(InputVectorsT) == 0) || 
+        all(c(InputRastersT$noChng, InputVectorsT$noChng))) &&
+       timestep != min(timestepSet)){
       doLandscape <- FALSE
     } else {
       doLandscape <- TRUE
