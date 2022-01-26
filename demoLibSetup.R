@@ -96,13 +96,13 @@ if (doRun) {
   cSheet <- "ROFSim_RasterFile"
   cc <- data.frame(RastersID = "Provincial Land Cover", 
                    Filename = file.path(sourceData2, "plc250.tif"))
-  saveDatasheet(datContextScn, cc, name = cSheet, append = F)
+  saveDatasheet(datContextScn, cc, name = cSheet, append = FALSE)
   # datasheet(datContextScn,cSheet)
 
   cSheet <- "ROFSim_ExternalFile"
   cc <- data.frame(PolygonsID = "Ranges", 
                    File = file.path(sourceData2, "/project_ranges.shp"))
-  saveDatasheet(datContextScn, cc, name = cSheet, append = F)
+  saveDatasheet(datContextScn, cc, name = cSheet, append = FALSE)
   # datasheet(datContextScn,cSheet)
 }
 
@@ -119,7 +119,7 @@ if (doRun) {
                    File = file.path(sourceData2, "/rail.shp"))
   cc <- rbind(cc, data.frame(PolygonsID = "Linear Features", 
                              File = file.path(sourceData2, "/util2020.shp")))
-  saveDatasheet(datLinearScn, cc, name = cSheet, append = F)
+  saveDatasheet(datLinearScn, cc, name = cSheet, append = FALSE)
   # datasheet(datLinearScn,cSheet)
 }
 
@@ -136,17 +136,21 @@ if (doRun) {
   cc <- rbind(cc, data.frame(RastersID = "Harvest", 
                              Filename = file.path(sourceData2, "harvMNRF2018_250.tif")))
   cc$Timestep <- NA
-  saveDatasheet(datBaselineScn, cc, name = cSheet, append = F)
+  saveDatasheet(datBaselineScn, cc, name = cSheet, append = FALSE)
   # datasheet(datBaselineScn,cSheet)
 
   cSheet <- "ROFSim_ExternalFile"
   cc <- data.frame(PolygonsID = "Eskers", File = file.path(sourceData2, "/esker.shp"))
-  saveDatasheet(datBaselineScn, cc, name = cSheet, append = F)
+  cc$Timestep <- NA
+  cc <- rbind(cc, data.frame(PolygonsID = "Linear Features", 
+                             Timestep = 2020,
+                             File = file.path(sourceData2, "road_ORNMNRFROF2020.shp")))
+  saveDatasheet(datBaselineScn, cc, name = cSheet, append = FALSE)
   # datasheet(datBaselineScn,cSheet)
 
   dependency(datBaselineScn, datContextScn)
   dependency(datBaselineScn, datLinearScn)
-  mergeDependencies(datBaselineScn) <- T
+  mergeDependencies(datBaselineScn) <- TRUE
 
   datBaselineRes <- run(datBaselineScn)
 } else {
@@ -173,18 +177,18 @@ if (doRun) {
     RastersID = "Anthropogenic Disturbance", Timestep = 2040,
     Filename = file.path(sourceData2, "mines_ras250.tif")
   )
-  saveDatasheet(datAnthroScn, cc, name = cSheet, append = F)
+  saveDatasheet(datAnthroScn, cc, name = cSheet, append = FALSE)
   # datasheet(datAnthroScn,cSheet)
 
   cSheet <- "ROFSim_ExternalFile"
   cc <- data.frame(PolygonsID = "Linear Features", Timestep = 2030,
                    File = file.path(sourceData2, "/RoF_MNRF_2020.shp"))
-  saveDatasheet(datAnthroScn, cc, name = cSheet, append = F)
+  saveDatasheet(datAnthroScn, cc, name = cSheet, append = FALSE)
   # datasheet(datAnthroScn,cSheet)
 
   dependency(datAnthroScn, datContextScn)
   dependency(datAnthroScn, datLinearScn)
-  mergeDependencies(datAnthroScn) <- T
+  mergeDependencies(datAnthroScn) <- TRUE
 
   datAnthroRes <- run(datAnthroScn)
 } else {
@@ -228,8 +232,8 @@ if (doRun) {
   # datasheet(cbCurScn,cSheet)
 
   cSheet <- "ROFSim_CaribouModelOptions"
-  cc <- data.frame(RunDistMetrics = T, RunCaribouHabitat = T,
-                   RunDemographicModel = T, padProjPoly = T)
+  cc <- data.frame(RunDistMetrics = TRUE, RunCaribouHabitat = TRUE,
+                   RunDemographicModel = TRUE, padProjPoly = TRUE)
   saveDatasheet(cbCurScn, cc, name = cSheet)
   # datasheet(cbCurScn,cSheet)
 
@@ -245,11 +249,11 @@ if (doRun) {
 cbAnthroScn <- scenario(cProj, "Caribou - anthro", sourceScenario = cbCurScn)
 
 if (doRun) {
-  dependency(cbAnthroScn, rcCurScn, remove = T, force = T)
+  dependency(cbAnthroScn, rcCurScn, remove = TRUE, force = TRUE)
   dependency(cbAnthroScn, rcFutScn)
   dependency(cbAnthroScn, datBaselineRes)
   dependency(cbAnthroScn, datAnthroRes)
-  mergeDependencies(cbAnthroScn) <- T
+  mergeDependencies(cbAnthroScn) <- TRUE
 
   cbAnthroRes <- run(cbAnthroScn)
 }
@@ -268,8 +272,8 @@ if (doRun) {
 
   cSheet <- "ROFSim_SpaDESGeneral"
   cc <- data.frame(Iteration = c(1, 2), 
-                   Filename = c(gsub("iter", iters[1], inPath, fixed = T),
-                                gsub("iter", iters[2], inPath, fixed = T)))
+                   Filename = c(gsub("iter", iters[1], inPath, fixed = TRUE),
+                                gsub("iter", iters[2], inPath, fixed = TRUE)))
   saveDatasheet(impSpdsScn, cc, name = cSheet)
   # datasheet(impSpdsScn,cSheet)
 
@@ -297,7 +301,7 @@ lccSpdsScn <- scenario(cProj, "Make LCC from SpaDES")
 
 if (doRun) {
   dependency(lccSpdsScn, impSpdsScn)
-  mergeDependencies(lccSpdsScn) <- T
+  mergeDependencies(lccSpdsScn) <- TRUE
 
   cSheet <- "core_Pipeline"
   cc <- data.frame(StageNameID = "Generate LCC from Cohort Data", RunOrder = 1)
@@ -343,7 +347,7 @@ cbSpdsScn <- scenario(cProj, "Caribou - spades - anthro", sourceScenario = cbAnt
 if (doRun) {
   # already depends on datAnthroRes and datBaselineRes from cbAnthroScn
   dependency(cbSpdsScn, datSpdsRes)
-  mergeDependencies(cbSpdsScn) <- T
+  mergeDependencies(cbSpdsScn) <- TRUE
 
   cSheet <- "ROFSim_CaribouDataSource"
   cc <- data.frame(
@@ -357,7 +361,7 @@ if (doRun) {
     EskerRasterID = "Eskers",
     LinearFeatureRasterID = "Linear Features"
   )
-  saveDatasheet(cbSpdsScn, cc, name = cSheet, append = F)
+  saveDatasheet(cbSpdsScn, cc, name = cSheet, append = FALSE)
   # datasheet(cbSpdsScn,cSheet)
 
   cbsRes <- run(cbSpdsScn)
@@ -396,7 +400,7 @@ fileNameMod <- "colormap_mapID_ROFSim_InputRastersMap-ID.txt"
 # get the list of charts to identify which one needs a legend
 myCharts <- datasheet(cProj,
   name = "corestime_Maps",
-  includeKey = T
+  includeKey = TRUE
 )
 myCharts
 
@@ -407,7 +411,7 @@ myChart <- filter(myCharts, Name == mapName)
 mapId <- myChart$MapID[1]
 mapId <- paste0("map", as.character(mapId))
 rasterId <- myChart$Criteria[1]
-rasterId <- gsub("Map2", "Map", rasterId, fixed = T)
+rasterId <- gsub("Map2", "Map", rasterId, fixed = TRUE)
 rasterId <- c(44, 18) # abs(parse_number(strsplit(rasterId,"|",fixed=T)[[1]]))
 # empirically, 18 and 45 sort of work.
 
@@ -422,7 +426,7 @@ if (length(rasterId) == 1) {
 }
 
 # get the legend directory for the library
-libProperties <- ssimLibrary(cLib, summary = T)
+libProperties <- ssimLibrary(cLib, summary = TRUE)
 legendDir <- filter(libProperties, property == "External input files:")
 legendDir <- as.character(legendDir$value)
 legendDir <- paste0(legendDir, "\\Project-", as.character(projectId(cProj)))
@@ -457,10 +461,10 @@ close(fileConn)
 sourceFile <- paste(legendPath, fileNameMod, sep = "/")
 for (nn in newFileNames) {
   destFile <- paste(legendDir, nn, sep = "/")
-  file.copy(sourceFile, destFile, overwrite = T)
+  file.copy(sourceFile, destFile, overwrite = TRUE)
 }
 
 # delete the temp folder to get rid of any cached bitmaps
 tempDir <- filter(libProperties, property == "Temporary files:")
 tempDir <- as.character(tempDir$value)
-unlink(tempDir, recursive = T, force = T)
+unlink(tempDir, recursive = TRUE, force = TRUE)
