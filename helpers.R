@@ -63,9 +63,6 @@ filterInputs <- function(params, iter, ts, useMostRecent=F,min_ts = 1){
     params$Timestep <- ts
   }
   
-  if(nrow(params) == 0){
-    return(params)
-  }
   
   # Fill in the NAs for filtering
   params$Iteration <- fillWildcardITER(params$Iteration, iter)
@@ -73,6 +70,10 @@ filterInputs <- function(params, iter, ts, useMostRecent=F,min_ts = 1){
 
   prevs <- subset(params, Iteration == iter & Timestep < ts)
   theSubset <- subset(params, Iteration == iter & Timestep == ts)
+  
+  if(nrow(theSubset) == 0 && nrow(prevs) == 0){
+    return(theSubset)
+  }
   
   noChng <- FALSE
   
