@@ -110,41 +110,47 @@ projectPolyPth <- projectPolyPth$File
 # that are time step 0 and user needs to know to give a specific timestep if
 # they want to overwrite it later. This only works if only one type of linFeat
 # changes overtime
+linFeatsList <- filter(allParams$ExternalFile, PolygonsID == "Linear Features")
 
-
-linFeatsList <- filter(allParams$ExternalFile, PolygonsID == "Linear Features") %>% 
-  rename(ID = PolygonsID) %>% 
-  bind_rows(filter(allParams$RasterFile, RastersID == "Linear Features") %>% 
-              rename(ID = RastersID)) %>% 
-  mutate(Timestep = ifelse(is.na(Timestep), 0, Timestep)) %>%
-  rename(PolygonsID = ID) %>% 
-  split(.$Timestep)
-
-# add linFeats in 0 Timestep to all the other timesteps
-# this is a lot of copies that will end up on disk... is there a better way?
-if(length(linFeatsList[-which(names(linFeatsList) == "0")]) > 0){
-  linFeatsList <- map(linFeatsList[-which(names(linFeatsList) == "0")],
-                      ~bind_rows(splice(.x, linFeatsList[which(names(linFeatsList) == "0")]))) 
+if(nrow(linFeatsList) > 0){
+  linFeatsList <- linFeatsList %>% 
+    rename(ID = PolygonsID) %>% 
+    bind_rows(filter(allParams$RasterFile, RastersID == "Linear Features") %>% 
+                rename(ID = RastersID)) %>% 
+    mutate(Timestep = ifelse(is.na(Timestep), 0, Timestep)) %>%
+    rename(PolygonsID = ID) %>% 
+    split(.$Timestep)
+  
+  # add linFeats in 0 Timestep to all the other timesteps
+  # this is a lot of copies that will end up on disk... is there a better way?
+  if(length(linFeatsList[-which(names(linFeatsList) == "0")]) > 0){
+    linFeatsList <- map(linFeatsList[-which(names(linFeatsList) == "0")],
+                        ~bind_rows(splice(.x, linFeatsList[which(names(linFeatsList) == "0")]))) 
+  }
+  
+  linFeatsList <- linFeatsList %>% 
+    map(~mutate(.x, 
+                Timestep = ifelse(max(Timestep) == 0, NA_real_, max(Timestep)), 
+                names = paste0(gsub(" ", "_", PolygonsID), 
+                               "_iter_", Iteration,
+                               "_ts_", Timestep))) 
+  
+  linFeatsListNames <- linFeatsList %>% splice() %>% bind_rows() %>%
+    pull(names) %>% unique()
+  
+  # need to make one version that will stay vector and one that will be raster
+  linFeatsListLines <- linFeatsList %>% 
+    map(~pull(.x, File) %>% as.list()) %>% 
+    set_names(paste0(linFeatsListNames, "_lines"))
+  
+  linFeatsListRast <- linFeatsList %>% 
+    map(~pull(.x, File) %>% as.list()) %>% 
+    set_names(paste0(linFeatsListNames, "_rast"))
+} else {
+  linFeatsListLines <- NULL
+  linFeatsListRast <- NULL
 }
 
-linFeatsList <- linFeatsList %>% 
-  map(~mutate(.x, 
-              Timestep = max(ifelse(Timestep == 0, NA_real_, Timestep)), 
-              names = paste0(gsub(" ", "_", PolygonsID), 
-                             "_iter_", Iteration,
-                             "_ts_", Timestep))) 
-
-linFeatsListNames <- linFeatsList %>% splice() %>% bind_rows() %>%
-  pull(names) %>% unique()
-
-# need to make one version that will stay vector and one that will be raster
-linFeatsListLines <- linFeatsList %>% 
-  map(~pull(.x, File) %>% as.list()) %>% 
-  set_names(paste0(linFeatsListNames, "_lines"))
-
-linFeatsListRast <- linFeatsList %>% 
-  map(~pull(.x, File) %>% as.list()) %>% 
-  set_names(paste0(linFeatsListNames, "_rast"))
 
 # make other filenames into named list
 polyFiles <- allParams$ExternalFile %>% 
@@ -173,7 +179,7 @@ allSpatialInputs <- loadSpatialInputs(
   inputsList = splice(linFeatsListLines,
                       linFeatsListRast,
                       rasterFiles, 
-                      polyFiles),
+                      polyFiles) %>% compact(),
   convertToRast = c(names(linFeatsListRast), 
                     names(polyFiles)[which(grepl("Esker", names(polyFiles)))]),
   useTemplate = c(names(linFeatsListRast), 
