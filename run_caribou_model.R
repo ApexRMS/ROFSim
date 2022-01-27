@@ -482,8 +482,11 @@ for (iteration in iterationSet) {
       
     }
     
-    #QUESTION: faster to crop to projectPoly or landCover?
+    # temp raster files are building up on disk so remove this only effects
+    # raster files created in this session
+    raster::removeTmpFiles(0)
   }
+  
 }
 
 if(is.null(doCarHab)||doCarHab){
