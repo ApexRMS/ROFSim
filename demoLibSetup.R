@@ -384,7 +384,7 @@ scenarioId(lccSpdsRes)
 # mapPath = paste0(filepath(cLib),".input/Scenario-",scenarioId(lccSpdsRes),"/ROFSim_RasterFile/PLC_it_1_ts_2020.tif")
 iMap <- datasheetRaster(lccSpdsRes, "ROFSim_RasterFile", timestep = 2020, 
                         iteration = 1, 
-                        subset = expression(RastersID == "Provincial Land Cover"))
+                        subset = expression(RastersID == "SpaDES Land Cover"))
 fTab <- freq(iMap)
 fTab
 
