@@ -18,6 +18,19 @@ if(!localDebug){
   # Source the helpers
   source(file.path(e$PackageDirectory, "helpers.R"))
   
+  # moved from helpers
+  GLOBAL_Session = session()
+  GLOBAL_Library = ssimLibrary(session = GLOBAL_Session)
+  GLOBAL_Project = project(GLOBAL_Library, project = as.integer(e$ProjectId))
+  GLOBAL_Scenario = scenario(GLOBAL_Library, scenario = as.integer(e$ScenarioId))
+  GLOBAL_RunControl = GetDataSheetExpectData("ROFSim_RunControl", GLOBAL_Scenario)
+  GLOBAL_MaxIteration = GetSingleValueExpectData(GLOBAL_RunControl, "MaximumIteration")
+  GLOBAL_MinIteration = GetSingleValueExpectData(GLOBAL_RunControl, "MinimumIteration")
+  GLOBAL_MinTimestep = GetSingleValueExpectData(GLOBAL_RunControl, "MinimumTimestep")
+  GLOBAL_MaxTimestep = GetSingleValueExpectData(GLOBAL_RunControl, "MaximumTimestep")
+  GLOBAL_TotalIterations = (GLOBAL_MaxIteration - GLOBAL_MinIteration + 1)
+  GLOBAL_TotalTimesteps = (GLOBAL_MaxTimestep - GLOBAL_MinTimestep + 1)
+  
 }else{
   e=list()
   e$PackageDirectory = "C:/Users/HughesJo/Documents/SyncroSim/Packages/ROFSim"
@@ -52,26 +65,26 @@ allParams <- lapply(myDatasheetsNames, loadDatasheet)
 names(allParams) <- myDatasheetsNames
 
 # Modify the source data table
-allParams$CaribouDataSourceWide <- allParams$CaribouDataSource %>% 
-  pivot_longer(values_to = "VarID", names_to = "CaribouVarID", 
-               cols=tidyselect::all_of(names(allParams$CaribouDataSource))) %>% 
-  rowwise() %>% 
-  mutate(type=ifelse(grepl("Raster", CaribouVarID, fixed=TRUE), "raster", "shapefile")) %>% 
+allParams$CaribouDataSourceWide <- allParams$CaribouDataSource %>%
+  pivot_longer(values_to = "VarID", names_to = "CaribouVarID",
+               cols=tidyselect::all_of(names(allParams$CaribouDataSource))) %>%
+  rowwise() %>%
+  mutate(type=ifelse(grepl("Raster", CaribouVarID, fixed=TRUE), "raster", "shapefile")) %>%
   ungroup() %>% drop_na() %>% as.data.frame()
 
 # Get variables -----------------------------------------------------------
 
 if (nrow(allParams$RasterFile > 0)){
-  allParams$RasterFile <- allParams$RasterFile %>% 
-    left_join(filter(allParams$CaribouDataSourceWide, type=="raster"), 
-              by = c("RastersID" = "VarID")) %>% 
+  allParams$RasterFile <- allParams$RasterFile %>%
+    left_join(filter(allParams$CaribouDataSourceWide, type=="raster"),
+              by = c("RastersID" = "VarID")) %>%
     as.data.frame()
 }
 
 if (nrow(allParams$ExternalFile > 0)){
-  allParams$ExternalFile <- allParams$ExternalFile %>% 
-    left_join(filter(allParams$CaribouDataSourceWide, type == "shapefile"), 
-              by = c("PolygonsID" = "VarID")) %>% 
+  allParams$ExternalFile <- allParams$ExternalFile %>%
+    left_join(filter(allParams$CaribouDataSourceWide, type == "shapefile"),
+              by = c("PolygonsID" = "VarID")) %>%
     as.data.frame()
 }
 
@@ -130,13 +143,21 @@ if(!grepl("M",allParams$CaribouModelOptions$survivalModelNumber)){
 # Run model ---------------------------------------------------------------
 progressBar(type = "begin", totalSteps = length(iterationSet) * length(timestepSet))
 
-# Empty list to start
-habitatUseAll <- NULL
-distMetricsAll <- NULL
-distMetricsTabAll <- NULL
-popMetricsTabAll <- NULL
+# Avoid growing list to help memory allocation time
+habitatUseAll <- vector("list", length = length(iterationSet))
+habitatUseAll <- lapply(habitatUseAll, 
+                        function(x){vector("list", length = length(timestepSet))})
+habitatUseAll <- setNames(habitatUseAll, paste0("it_", iterationSet)) %>% 
+  lapply(function(x) {setNames(x, paste0("ts_", timestepSet))})
+distMetricsAll <- habitatUseAll
+distMetricsTabAll <- habitatUseAll
+popMetricsTabAll <- habitatUseAll
+
+allParams$RasterFile=unique(allParams$RasterFile)
+allParams$ExternalFile=unique(allParams$ExternalFile)
 
 for (iteration in iterationSet) {
+  #iteration=1
   if(is.null(doDemography)||doDemography){
     #demographic rates from disturbance metrics.
     #regression model parameter sampling is done once for each population at the beginning of the simulation 
@@ -149,7 +170,7 @@ for (iteration in iterationSet) {
   }  
 
   #Note: assuming timestepSet is ordered low to high
-  for (tt in 1:length(timestepSet)) {
+  for (tt in seq_along(timestepSet)) {
     #iteration=1;tt=1
     timestep=timestepSet[tt]
     if(tt==length(timestepSet)){
@@ -169,110 +190,76 @@ for (iteration in iterationSet) {
                                  iteration, timestep, min(timestepSet),useMostRecent="RastersID")
     InputRastersT <- filterInputs(subset(allParams$RasterFile,!is.na(Timestep)), 
                                    iteration, timestep, min(timestepSet),useMostRecent="RastersID")
-    InputRasters=rbind(InputRastersNA,InputRastersT)
-    InputRasters=subset(InputRasters,!is.na(Filename))
+
     InputVectorsNA <- filterInputs(subset(allParams$ExternalFile,is.na(Timestep)),
                                  iteration, timestep, min(timestepSet))
     InputVectorsT <- filterInputs(subset(allParams$ExternalFile,!is.na(Timestep)),
                                    iteration, timestep, min(timestepSet),useMostRecent="PolygonsID")
+    
+    # skip landscape calcs if no change since previous timestep
+    if((all(nrow(InputRastersT) == 0, nrow(InputVectorsT) == 0) || 
+        all(c(InputRastersT$noChng, InputVectorsT$noChng))) &&
+       timestep != min(timestepSet)){
+      doLandscape <- FALSE
+    } else {
+      doLandscape <- TRUE
+    }
+
+    InputRasters=rbind(InputRastersNA,InputRastersT)
+    InputRasters=subset(InputRasters,!is.na(Filename))
     InputVectors=rbind(InputVectorsNA,InputVectorsT)
     InputVectors=subset(InputVectors,!is.na(File))
     
-    # Call the main function with all arguments extracted from datasheets
-    plcRas <-  tryCatch({
-      raster(filter(InputRasters, CaribouVarID == "LandCoverRasterID")$File)
-    }, error = function(cond) { stop("land cover can't be null") })
-    
-    # Reclass landcover if needed
-    # UI TO DO: allow user to input plcLU table (same format as plcToResType in caribouMetrics package). If table is specified, reclass regardless of whether the number of classes is <9.
-    # TO DO: need better way of recognizing landcover class types - maybe just require user to specify? # of classes assumptions will potentially cause trouble on reduced landscapes where not all classes are represented.
-    if ((max(values(plcRas), na.rm = TRUE) <= 9)){
-      warning(paste0("Assuming landcover classes are: ",paste(paste(resTypeCode$ResourceType,resTypeCode$code),collapse=",")))
-    }else if(is.element((max(values(plcRas), na.rm = TRUE)),c(29,30))){
-      #TO DO: add PLC legend file to caribouMetrics package, and report here.
-      warning(paste0("Assuming Ontario provincial landcover classes: ",paste(paste(plcToResType$ResourceType,plcToResType$PLCCode),collapse=",")))
-      plcRas[plcRas==30]=29
-      plcRas <- reclassPLC(plcRas,plcToResType)
-    }else if((max(values(plcRas), na.rm = TRUE) == 39)){
-      warning(paste0("Assuming national landcover classes: ",paste(paste(lccToResType$ResourceType,lccToResType$PLCCode),collapse=",")))
-      plcRas <- reclassPLC(plcRas,lccToResType)
-    }else{
-      stop("Landcover classification not recognized. Please specify...")
-    }
-    
-    eskerRas <- tryCatch({
-      raster(filter(InputRasters, CaribouVarID == "EskerRasterID")$File)
-    }, error = function(cond) { NULL })
-    eskerPol <- tryCatch({
-      st_read(filter(InputVectors, CaribouVarID == "EskerShapeFileID")$File)
-    }, error = function(cond) { NULL })
-    
-    if(is.null(eskerPol)){
-      eskerFinal <- eskerRas
-    } else {
-      eskerFinal <- eskerPol
-    }
-    
-    #ageRas <- tryCatch({
-    #  raster(filter(InputRasters, CaribouVarID == "AgeRasterID")$File)
-    #}, error = function(cond) { NULL })
-    
-    natDistRas <- tryCatch({
-      raster(filter(InputRasters, CaribouVarID == "NaturalDisturbanceRasterID")$File)
-    }, error = function(cond) { NULL })
-
-    #If this raster contains something that looks like ages, interpret as time since natural disturbance.
-    if(!is.null(natDistRas)&&(cellStats(natDistRas,"max")>10)){
-      distPersistence=optArg(allParams$CaribouModelOptions$DisturbancePersistence)
-      if(is.null(distPersistence)){distPersistence=40}
-      natDistRas=natDistRas<=distPersistence
-    }
-    
-    anthroDistRas <- tryCatch({
-      raster(filter(InputRasters, CaribouVarID == "AnthropogenicRasterID")$File)
-    }, error = function(cond) { NULL })
-    
-    harvRas <- tryCatch({
-      raster(filter(InputRasters, CaribouVarID == "HarvestRasterID")$File)
-    }, error = function(cond) { NULL })
-    
-    linFeatRas <- tryCatch({
-      filtered <- filter(InputRasters, CaribouVarID == "LinearFeatureRasterID")$File
-      linFeatListRas <- lapply(filtered, raster)
-    }, error = function(cond) { NULL })
-    linFeatPol <- tryCatch({
-      filtered <- filter(InputVectors, CaribouVarID == "LinearFeatureShapeFileID")$File
-      linFeatListPol <- lapply(filtered, st_read)
-    }, error = function(cond) { NULL })
-    
-    if(length(linFeatPol) == 0){
-      linFeatFinal <- linFeatListRas
-    } else {
-      linFeatFinal <- linFeatListPol
-    }
-
-    projectPol1 <- st_read(filter(InputVectors, CaribouVarID == "ProjectShapeFileID")$File) 
-    if("RANGE_NAME" %in% colnames(projectPol1)){
-      projectPol = rename(projectPol1, Range = RANGE_NAME)
-    }else{
-      if("Range" %in% colnames(projectPol1)){
-        projectPol = projectPol1
-      } else {
-        if(nrow(projectPol1) == 1){
-          mutate(projectPol1, Range = allParams$RunCaribouRange$Range)
-        } else{
-          stop("Caribou range polygons must have a Range column")
-        }
+    if(doLandscape){
+      # Call the main function with all arguments extracted from datasheets
+      plcRas <-  tryCatch({
+        raster(filter(InputRasters, CaribouVarID == "LandCoverRasterID")$File)
+      }, error = function(cond) { stop("land cover can't be null") })
+      
+      # Reclass landcover if needed
+      # UI TO DO: allow user to input plcLU table (same format as plcToResType in caribouMetrics package). If table is specified, reclass regardless of whether the number of classes is <9.
+      # TO DO: need better way of recognizing landcover class types - maybe just require user to specify? # of classes assumptions will potentially cause trouble on reduced landscapes where not all classes are represented.
+      if ((max(values(plcRas), na.rm = TRUE) <= 9)){
+        warning(paste0("Assuming landcover classes are: ",paste(paste(resTypeCode$ResourceType,resTypeCode$code),collapse=",")))
+      }else if(is.element((max(values(plcRas), na.rm = TRUE)), c(28:30))){
+        #TO DO: add PLC legend file to caribouMetrics package, and report here.
+        warning(paste0("Assuming Ontario provincial landcover classes: ",paste(paste(plcToResType$ResourceType,plcToResType$PLCCode),collapse=",")))
+        plcRas[plcRas==30]=29
+        plcRas <- reclassPLC(plcRas,plcToResType)
+      }else if((max(values(plcRas), na.rm = TRUE) == 39)){
+        warning(paste0("Assuming national landcover classes: ",paste(paste(lccToResType$ResourceType,lccToResType$PLCCode),collapse=",")))
+        plcRas <- reclassPLC(plcRas,lccToResType)
+      }else{
+        stop("Landcover classification not recognized. Please specify...")
       }
-    }  
-
-    # Rename range in expected format
-    renamedRange <- rename(allParams$RunCaribouRange, coefRange = CoeffRange)
-    
-    projectPoltmp <- projectPol %>% 
-      filter(Range %in% renamedRange$Range) 
-
-    if(is.null(doDistMetrics)||doDistMetrics){
+      
+      eskerRas <- tryCatch({
+        raster(filter(InputRasters, CaribouVarID == "EskerRasterID")$File)
+      }, error = function(cond) { stop("Eskers are required")})
+      
+      # always use raster esker since it has been converted to density
+      eskerFinal <- eskerRas
+      
+      natDistRas <- tryCatch({
+        raster(filter(InputRasters, CaribouVarID == "NaturalDisturbanceRasterID")$File)
+      }, error = function(cond) { NULL })
+      
+      #If this raster contains something that looks like ages, interpret as time since natural disturbance.
+      if(!is.null(natDistRas)&&(cellStats(natDistRas,"max")>10)){
+        distPersistence=optArg(allParams$CaribouModelOptions$DisturbancePersistence)
+        if(is.null(distPersistence)){distPersistence=40}
+        natDistRas=natDistRas<=distPersistence
+      }
+      
+      anthroDistRas <- tryCatch({
+        raster(filter(InputRasters, CaribouVarID == "AnthropogenicRasterID")$File)
+      }, error = function(cond) { NULL })
+      
+      harvRas <- tryCatch({
+        raster(filter(InputRasters, CaribouVarID == "HarvestRasterID")$File)
+      }, error = function(cond) { NULL })
+      
+      # Harvest and anthropogenic dist are always combined now
       if(is.null(harvRas)){
         combineAnthro=anthroDistRas
       }else{
@@ -283,55 +270,106 @@ for (iteration in iterationSet) {
         }
       }
       
-      fullDist <- disturbanceMetrics(
-        landCover=!is.na(plcRas),
-        natDist = natDistRas,
-        anthroDist = combineAnthro,
-        linFeat = linFeatFinal,
-        projectPoly = projectPoltmp,
-        padFocal = optArg(allParams$CaribouModelOptions$PadFocal),
-        bufferWidth =  optArg(allParams$CaribouModelOptions$ECCCBufferWidth) 
-      )
+      # use linear feature raster in caribouMetrics and lines in disturbance
+      linFeatRas <- tryCatch({
+        filtered <- filter(InputRasters, CaribouVarID == "LinearFeatureRasterID")$File
+        raster(filtered)
+      }, error = function(cond) { NULL })
       
-      # Build df and save the datasheet
-      fds <- subset(fullDist@disturbanceMetrics,select=c(Range,Anthro,Fire,Total_dist,fire_excl_anthro))
-      names(fds)[1]="RangeID"
-      fds <- gather(fds, MetricTypeDistID, Amount, Anthro:fire_excl_anthro, factor_key=FALSE)
-      distMetricsTabDf <- fds
-      distMetricsTabDf$Iteration <- iteration
-      distMetricsTabDf$Timestep <- timestep
+      linFeatShp <- tryCatch({
+        filtered <- filter(InputVectors, CaribouVarID == "LinearFeatureShapeFileID")$File
+        read_sf(filtered)
+      }, error = function(cond) { NULL })
       
-      distMetricsTabAll[[paste0("it_",iteration)]][[paste0("ts_",timestep)]] <- 
-        distMetricsTabDf
+      projectPol1 <- st_read(filter(InputVectors, CaribouVarID == "ProjectShapeFileID")$File) 
+      if("RANGE_NAME" %in% colnames(projectPol1)){
+        projectPol = rename(projectPol1, Range = RANGE_NAME)
+      }else{
+        if("Range" %in% colnames(projectPol1)){
+          projectPol = projectPol1
+        } else {
+          if(nrow(projectPol1) == 1){
+            projectPol = mutate(projectPol1, Range = allParams$RunCaribouRange$Range)
+          } else{
+            stop("Caribou range polygons must have a Range column")
+          }
+        }
+      }
+      rm(projectPol1)
       
-      ## Save to DATA folder
-      writeRaster(fullDist@processedData, bylayer = TRUE, format = "GTiff",
-                  suffix = paste(names(fullDist@processedData), 
-                                 paste(renamedRange$Range, collapse = "_"),
-                                 paste0("it_",iteration), 
-                                 paste0("ts_",timestep), sep = "_"),
-                  filename = file.path(e$TransferDirectory, "OutputDistMetrics"), 
-                  overwrite = TRUE)
+      # Rename range in expected format
+      renamedRange <- rename(allParams$RunCaribouRange, coefRange = CoeffRange)
       
-      # Build df and save the datasheet
-      distMetricsDf <- data.frame(MetricTypeDistID = names(fullDist@processedData), 
-                                  Iteration = iteration,
-                                  Timestep = timestep)
-      distMetricsDf$FileName <- file.path(e$TransferDirectory, 
-                                          paste0(paste("OutputDistMetrics",
-                                                       distMetricsDf$MetricTypeDistID,
-                                                       paste(renamedRange$Range, collapse = "_"),
-                                                       "it", distMetricsDf$Iteration, 
-                                                       "ts", distMetricsDf$Timestep,
-                                                       sep= "_"), ".tif"))
-      distMetricsDf <- distMetricsDf %>% 
-        expand_grid(RangeID = renamedRange$Range)
+      projectPoltmp <- projectPol %>% 
+        filter(Range %in% renamedRange$Range) 
+    }
+
+    if(is.null(doDistMetrics)||doDistMetrics){
+      if(doLandscape){
+        # use preppedData list
+        fullDist <- disturbanceMetrics(
+          preppedData = list(refRast=!is.na(plcRas),
+                             natDist = natDistRas,
+                             anthroDist = combineAnthro,
+                             linFeat = linFeatShp,
+                             projectPolyOrig = projectPoltmp),
+          padFocal = optArg(allParams$CaribouModelOptions$PadFocal),
+          bufferWidth =  optArg(allParams$CaribouModelOptions$ECCCBufferWidth) 
+        )
+        
+        # Build df and save the datasheet
+        distMetRes <- subset(fullDist@disturbanceMetrics,select=c(Range,Anthro,Fire,Total_dist,fire_excl_anthro))
+        fds <- distMetRes
+        names(fds)[1]="RangeID"
+        fds <- gather(fds, MetricTypeDistID, Amount, Anthro:fire_excl_anthro, factor_key=FALSE)
+        distMetricsTabDf <- fds
+        distMetricsTabDf$Iteration <- iteration
+        distMetricsTabDf$Timestep <- timestep
+        
+        
+        ## Save to DATA folder
+        writeRaster(fullDist@processedData, bylayer = TRUE, format = "GTiff",
+                    suffix = paste(names(fullDist@processedData), 
+                                   paste(renamedRange$Range, collapse = "_"),
+                                   paste0("it_",iteration), 
+                                   paste0("ts_",timestep), sep = "_"),
+                    filename = file.path(e$TransferDirectory, "OutputDistMetrics"), 
+                    overwrite = TRUE)
+        
+        # Build df and save the datasheet
+        distMetricsDf <- data.frame(MetricTypeDistID = names(fullDist@processedData), 
+                                    Iteration = iteration,
+                                    Timestep = timestep)
+        distMetricsDf$FileName <- file.path(e$TransferDirectory, 
+                                            paste0(paste("OutputDistMetrics",
+                                                         distMetricsDf$MetricTypeDistID,
+                                                         paste(renamedRange$Range, collapse = "_"),
+                                                         "it", distMetricsDf$Iteration, 
+                                                         "ts", distMetricsDf$Timestep,
+                                                         sep= "_"), ".tif"))
+        distMetricsDf <- distMetricsDf %>% 
+          expand_grid(RangeID = renamedRange$Range)
+        
+
+        
+      } else {
+        # use table from previous ts
+        distMetricsDf <- distMetricsAll[[paste0("it_",iteration)]][[paste0("ts_",timestepSet[tt-1])]]
+        distMetricsDf$Timestep <- timestep 
+        
+        distMetricsTabDf <- distMetricsTabAll[[paste0("it_",iteration)]][[paste0("ts_",timestepSet[tt-1])]]
+        distMetricsTabDf$Timestep <- timestep 
+      }
       
       distMetricsAll[[paste0("it_",iteration)]][[paste0("ts_",timestep)]] <- 
         distMetricsDf
       
+      distMetricsTabAll[[paste0("it_",iteration)]][[paste0("ts_",timestep)]] <-
+        distMetricsTabDf 
+
       if(is.null(doDemography)||doDemography){
-        covTableSim <- subset(fullDist@disturbanceMetrics,select=c(Anthro,Fire,Total_dist,fire_excl_anthro,Range)) 
+        # this will be from previous iteration if not doLandscape
+        covTableSim <- distMetRes
         names(covTableSim)[names(covTableSim)=="Range"]=c("polygon")
         covTableSim$area="FarNorth"
         
@@ -379,6 +417,7 @@ for (iteration in iterationSet) {
         
       }
     }
+    rm(fullDist)
     #TO DO: handle polygon inputs for natural disturbance, anthro disturbance, and harvest
     #TO DO: check that disturbanceMetrics calculations handle multiple ranges properly
     #TO DO: accept anthropogenic disturbance polygons or rasters, and behave properly when they are missing.
@@ -393,57 +432,60 @@ for (iteration in iterationSet) {
     #       padFocal = optArg(allParams$CaribouModelOptions$PadFocal),
     #       doScale = optArg(allParams$CaribouModelOptions$doScale))
     #saveRDS(d,paste0("C:/Users/HughesJo/Documents/InitialWork/OntarioFarNorth/RoFModel/UI/debugData.RDS"))
-    doCarHab=optArg(allParams$CaribouModelOptions$RunCaribouHabitat)
+    doCarHab <- optArg(allParams$CaribouModelOptions$RunCaribouHabitat)
     if(is.null(doCarHab)||doCarHab){
-      res <- caribouHabitat(
-        landCover = plcRas , 
-        esker = eskerFinal, 
-        natDist = natDistRas,
-        anthroDist = anthroDistRas,
-        harv = harvRas,
-        linFeat = linFeatFinal, 
-        projectPoly = projectPoltmp,
-        caribouRange = renamedRange,       # Caribou Range
-        # Options
-        padProjPoly = optArg(allParams$CaribouModelOptions$PadProjPoly),
-        padFocal = optArg(allParams$CaribouModelOptions$PadFocal),
-        doScale = optArg(allParams$CaribouModelOptions$doScale),
-        # outputs are saved afterwards
-        eskerSave = NULL,
-        linFeatSave = NULL,
-        saveOutput = NULL
-      )
-     
-      ## Save to DATA folder
-      writeRaster(res@habitatUse, bylayer = TRUE, format = "GTiff",
-                  suffix = paste(names(res@habitatUse), 
-                                 paste(renamedRange$Range, collapse = "_"),
-                                 paste0("it_",iteration), 
-                                 paste0("ts_",timestep), sep = "_"),
-                  filename = file.path(e$TransferDirectory, "OutputHabitatUse"), 
-                  overwrite = TRUE)
-      
-      # Build df and save the datasheet
-      habitatUseDf <- data.frame(SeasonID = names(res@habitatUse), 
-                                 Iteration = iteration,
-                                 Timestep = timestep)
-      habitatUseDf$FileName <- file.path(e$TransferDirectory, 
-                                         paste0(paste("OutputHabitatUse",
-                                                      habitatUseDf$Season,
-                                                      paste(renamedRange$Range, collapse = "_"),
-                                                      "it", habitatUseDf$Iteration, 
-                                                      "ts", habitatUseDf$Timestep,
-                                                      sep= "_"), ".tif"))
-      habitatUseDf <- habitatUseDf %>% 
-        expand_grid(RangeID = renamedRange$Range)
+      if(doLandscape){
+        res <- caribouHabitat(
+          preppedData = list(refRast = plcRas, 
+                             esker = eskerRas, 
+                             natDist = natDistRas,
+                             anthroDist = combineAnthro,
+                             linFeat = linFeatRas, 
+                             projectPolyOrig = projectPoltmp),
+          caribouRange = renamedRange,       # Caribou Range
+          # Options
+          padProjPoly = optArg(allParams$CaribouModelOptions$PadProjPoly),
+          padFocal = optArg(allParams$CaribouModelOptions$PadFocal),
+          doScale = optArg(allParams$CaribouModelOptions$doScale)
+        )
+        
+        ## Save to DATA folder
+        writeRaster(res@habitatUse, bylayer = TRUE, format = "GTiff",
+                    suffix = paste(names(res@habitatUse), 
+                                   paste(renamedRange$Range, collapse = "_"),
+                                   paste0("it_",iteration), 
+                                   paste0("ts_",timestep), sep = "_"),
+                    filename = file.path(e$TransferDirectory, "OutputHabitatUse"), 
+                    overwrite = TRUE)
+        
+        # Build df and save the datasheet
+        habitatUseDf <- data.frame(SeasonID = names(res@habitatUse), 
+                                   Iteration = iteration,
+                                   Timestep = timestep)
+        habitatUseDf$FileName <- file.path(e$TransferDirectory, 
+                                           paste0(paste("OutputHabitatUse",
+                                                        habitatUseDf$Season,
+                                                        paste(renamedRange$Range, collapse = "_"),
+                                                        "it", habitatUseDf$Iteration, 
+                                                        "ts", habitatUseDf$Timestep,
+                                                        sep= "_"), ".tif"))
+        habitatUseDf <- habitatUseDf %>% 
+          expand_grid(RangeID = renamedRange$Range)
+      } else {
+        
+        habitatUseDf <- habitatUseAll[[paste0("it_",iteration)]][[paste0("ts_",timestepSet[tt-1])]] 
+      }
       
       habitatUseAll[[paste0("it_",iteration)]][[paste0("ts_",timestep)]] <- 
         habitatUseDf
       
     }
     
-    #QUESTION: faster to crop to projectPoly or landCover?
+    # temp raster files are building up on disk so remove this only effects
+    # raster files created in this session
+    raster::removeTmpFiles(0)
   }
+  
 }
 
 if(is.null(doCarHab)||doCarHab){

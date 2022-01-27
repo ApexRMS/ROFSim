@@ -10,6 +10,7 @@
         <transformer name="corestime_Runtime" />
         <transformer name="LoadSpadesOutputs" />
         <transformer name="makeLCCFromCohortData" />
+        <transformer name="PrepareSpatialData" />
         <transformer name="RunCaribouHabitatModel" />
       </include>
 
@@ -297,7 +298,82 @@
       </pipeline>
 
     </transformer>
+    
+    <transformer name="PrepareSpatialData" displayName="Prepare Spatial Data" isRunnable="True" programName="Rscript" className="SyncroSim.StochasticTime.StochasticTimeTransformer" classAssembly="SyncroSim.StochasticTime" configurationSheet="ROFSim_RunControl" programArguments="prepare_spatial_data.R">
 
+      <datafeeds>
+
+        <!-- Input Datafeeds -->
+<!-- 
+        <datafeed name="CaribouDataSource2" displayName="Data Sources" dataScope="Scenario">
+          <datasheets>
+            <datasheet name="CaribouDataSource2" displayName="Data Sources" isSingleRow="True">
+              <columns>
+                <column name="CaribouDataSourceID" dataType="Integer" isPrimary="True" />
+                <column name="ScenarioID" dataType="Integer" />
+                <column name="LandCoverRasterID" displayName="Land Cover (Raster)" dataType="Integer" validationType="Datasheet" formula1="Rasters" allowDbNull="False" />
+                <column name="ProjectShapeFileID" displayName="Project Area (Polygon)" dataType="Integer" validationType="Datasheet" formula1="Polygons" allowDbNull="False" />
+                <column name="EskerRasterID" displayName="Eskers (Raster)" dataType="Integer" validationType="Datasheet" formula1="Rasters" allowDbNull="True" />
+                <column name="EskerShapeFileID" displayName="Eskers (Polygon)" dataType="Integer" validationType="Datasheet" formula1="Polygons" allowDbNull="True" />
+                <column name="LinearFeatureRasterID" displayName="Linear Feature (Raster)" dataType="Integer" validationType="Datasheet" formula1="Rasters" allowDbNull="True" />
+                <column name="LinearFeatureShapeFileID" displayName="Linear Feature (Polygon)" dataType="Integer" validationType="Datasheet" formula1="Polygons" allowDbNull="True" />
+                <column name="NaturalDisturbanceRasterID" displayName="Natural Disturbances (Raster)" dataType="Integer" validationType="Datasheet" formula1="Rasters" allowDbNull="True" />
+                <column name="AnthropogenicRasterID" displayName="Anthropogenic Disturbances (Raster)" dataType="Integer" validationType="Datasheet" formula1="Rasters" allowDbNull="True" />
+                <column name="HarvestRasterID" displayName="Harvest (Raster)" dataType="Integer" validationType="Datasheet" formula1="Rasters" allowDbNull="True" />
+              </columns>
+            </datasheet>
+          </datasheets>
+        </datafeed>
+ -->
+        <!-- Outputs Datafeeds -->
+<!--
+        <datafeed name="OutputSpatialHabitat2" displayName="Output Habitat Spatial" dataScope="Scenario" isOutput="True">
+          <datasheets>
+            <datasheet name="OutputSpatialHabitat2" displayName="Output Habitat Spatial">
+              <columns>
+                <column name="OutputSpatialHabitatID" dataType="Integer" isPrimary="True" />
+                <column name="Iteration" dataType="Integer" validationType="WholeNumber" validationCondition="Greater" formula1="0" format="d" isOptional="True" />
+                <column name="Timestep" dataType="Integer" validationType="WholeNumber" validationCondition="GreaterEqual" formula1="0" isOptional="True" />
+                <column name="ScenarioID" dataType="Integer" />
+                <column name="RangeID" dataType="Integer" validationType="Datasheet" formula1="CaribouRange" allowDbNull="False" />
+                <column name="SeasonID" dataType="Integer" validationType="Datasheet" formula1="Season" allowDbNull="False" />
+                <column name="FileName" dataType="String" isExternalFile="True" isRaster="True" bandColumn="Band" bandFilterColumn="SeasonID" allowDbNull="False" filenameCode="habuse" />
+                <column name="Band" dataType="Integer" isOptional="True" />
+              </columns>
+            </datasheet>
+          </datasheets>
+        </datafeed>
+
+        <datafeed name="OutputSpatialDisturbance2" displayName="Output Disturbance Spatial" dataScope="Scenario" isOutput="True">
+          <datasheets>
+            <datasheet name="OutputSpatialDisturbance2" displayName="Output Disturbance Spatial">
+              <columns>
+                <column name="OutputSpatialDisturbanceID" dataType="Integer" isPrimary="True" />
+                <column name="Iteration" dataType="Integer" validationType="WholeNumber" validationCondition="Greater" formula1="0" format="d" isOptional="True" />
+                <column name="Timestep" dataType="Integer" validationType="WholeNumber" validationCondition="GreaterEqual" formula1="0" isOptional="True" />
+                <column name="ScenarioID" dataType="Integer" />
+                <column name="RangeID" dataType="Integer" validationType="Datasheet" formula1="CaribouRange" allowDbNull="False" />
+                <column name="MetricTypeDistID" dataType="Integer" validationType="Datasheet" formula1="MetricTypeDisturbance" allowDbNull="False" />
+                <column name="FileName" dataType="String" isExternalFile="True" isRaster="True" bandColumn="Band" bandFilterColumn="MetricTypeDistID" allowDbNull="False" filenameCode="mettype" />
+                <column name="Band" dataType="Integer" isOptional="True" />
+              </columns>
+            </datasheet>
+          </datasheets>
+        </datafeed>
+-->
+
+      </datafeeds>
+
+      <pipeline>
+
+        <!--datafeed name="DataSummary" /-->
+        <datafeed name="RasterFile" />
+        <datafeed name="ExternalFile" />
+
+      </pipeline>
+
+    </transformer>
+    
     <transformer name="RunCaribouHabitatModel" displayName="Caribou Habitat" isRunnable="True" programName="Rscript" className="SyncroSim.StochasticTime.StochasticTimeTransformer" classAssembly="SyncroSim.StochasticTime" configurationSheet="ROFSim_RunControl" programArguments="run_caribou_model.R">
 
       <datafeeds>
@@ -532,7 +608,22 @@
         </group>
 
       </group>
+      
+      <group name="PrepareSpatial" displayName="Prepare Spatial Data">
 
+        <group name="Inputs">
+          <!-- item name="CaribouDataSource" itemTransformer="PrepareSpatialData" showIf="isParent" / -->
+          <item name="RasterFile" itemTransformer="PrepareSpatialData" showIf="isParent" />
+          <item name="ExternalFile" itemTransformer="PrepareSpatialData" showIf="isParent" />
+        </group>
+
+        <group name="Outputs">
+          <item name="RasterFile" itemTransformer="PrepareSpatialData" showIf="isResult" />
+          <item name="ExternalFile" itemTransformer="PrepareSpatialData" showIf="isResult" />
+        </group>
+        
+      </group>
+      
       <group name="CaribouModel" displayName="Caribou Metrics">
 
         <group name="Inputs">

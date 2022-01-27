@@ -36,14 +36,41 @@ myDatasheetsNames <- myDatasheetsFiltered$name
 source(file.path(e$PackageDirectory, "makeLCCFromCohortData_helper.R"))
 source(file.path(e$PackageDirectory, "helpers.R"))
 
-# Hardcoded reclass table
+#names(spadesObject)
+#outLCC<-raster("C:/Users/HughesJo/Documents/gitprojects/ChurchillAnalysis/inputNV/Provincial-Landcover-2000/FarNorthLandCover/Version 1.4/TIF Format/New folder/Class/FarNorth_LandCover_Group_RoF.tif")
+outLCC <- raster("C:/Users/endicotts/Documents/gitprojects/ROFSyncSim/ROFDemo_data/plc250.tif") 
+# inRat = levels(outLCC)[[1]]
+# 
+# inRat[1:12,]
+# 
+# # Output classes - in terms of outLCC
+# inRat
+
 lccClassTable = data.table(
   standLeading = c("pureCon_dense", "pureCon_open", "pureCon_sparse",
-                   "pureDec_dense", "pureDec_open", "pureDec_sparse",
-                   "mixed_dense", "mixed_open", "mixed_sparse"), 
-  LCCclass = c(13,13,13,
-               11,11,11, 
-               12,12,12)) # HARDCODED TO MATCH RESOURCE TYPES
+                   "pureDec_dense","pureDec_open", "pureDec_sparse",
+                   "mixed_dense","mixed_open", "mixed_sparse"), 
+  LCCclass = c(1,2,3,
+               4,5,6, 
+               7,8,9)) # HARDCODED TO MATCH RESOURCE TYPES
+# WHICH RESOURCE TYPES!!? the resource types in caribouMetrics eg 6 = water
+
+#sparseness classes - in terms of SpaDES far north landcover classes
+legendPath <- "."
+source(paste0(legendPath,"/legendHelpers.R"))
+fileName <- "colormap_mapID_ROFSim_InputRastersMap-IDtemplateC.txt"
+lTab = read.csv(paste(legendPath, fileName, sep="/"))
+names(lTab)=c("ID","RGB1","RGB2","RGB3","C","Label")
+lTab$ID = as.numeric(lTab$ID)
+lTab=subset(lTab,!is.na(RGB1))
+cTab = farNorthLandcover(lTab)
+
+lccSparsenessTable = subset(cTab,select=c("ID","type"))
+lccSparsenessTable$type[lccSparsenessTable$type=="young"]="young dense"
+
+names(lccSparsenessTable)=c("LCCclass","sparseness")
+lccSparsenessTable=subset(lccSparsenessTable,(grepl("sparse",sparseness)|grepl("dense",sparseness)|grepl("open",sparseness)))
+
 
 # SpaDES Info -------------------------------------------------------------
 
@@ -97,12 +124,9 @@ LCC05ToResType <- function(FromList, ToVal, landcover){
 # Transfer dir
 tmp <- e$TransferDirectory
 
-# Get empty datasheets
-rasterFiles <- datasheet(mySce, "RasterFile", lookupsAsFactors = FALSE, 
+# Get datasheet
+outputSheet <- datasheet(mySce, "RasterFile", lookupsAsFactors = FALSE, 
                          empty = TRUE, optional = TRUE)
-
-# Empty output sheet
-outputSheet <- data.frame()
 
 for (theIter in iterationSet){
   #theIter=1
@@ -111,7 +135,7 @@ for (theIter in iterationSet){
     filter(Iteration == theIter) %>% 
     pull(Filename)
   #sort( sapply(ls(),function(x){object.size(get(x))})) 
-  rstLCC=NULL;spadesObject=NULL
+  spadesObject=NULL
   spadesObject <- qs::qread(spadesObjectPath)
   
   # Filter them
@@ -124,11 +148,26 @@ for (theIter in iterationSet){
   # For now, reconstruct the relative paths based on basenames
   outputs$file <- file.path(dirname(spadesObjectPath), basename(outputs$file))
   
-  #rstLCC <- spadesObject$rasterToMatch
-  rstLCC<-raster("C:/Users/HughesJo/Documents/InitialWork/OntarioFarNorth/ROFData/Used/plc250.tif")
+  rm(spadesObject)
   
+  preamblePath = strsplit(spadesObjectPath,"/",fixed=T)[[1]]
+  typeBit = preamblePath[length(preamblePath)]
+  preamblePath = preamblePath[1:(length(preamblePath)-2)]
+  
+  typeBit = paste0("simOutPreamble_",typeBit)
+  typeBit = gsub("_SSP","_",typeBit,fixed=T)
+  typeBit = strsplit(typeBit,"_",fixed=T)[[1]]
+  typeBit = typeBit[1:(length(typeBit)-2)]
+  typeBit=paste0(paste(typeBit,collapse="_"),".qs")
+  spadesPreamble<-qs::qread(paste0(c(preamblePath,typeBit),collapse="/"))
+  rstLCC <- spadesPreamble$LCC
+  rm(spadesPreamble)
+  #freq(rstLCC)
+  #freq(outLCC)
+
   for (ts in sort(unique(outputs$Timestep))){
     #ts=2020
+    print(paste(theIter,ts))
     
     outputsFiltered <- outputs %>% 
       filter(Timestep == ts)
@@ -143,38 +182,47 @@ for (theIter in iterationSet){
                               pull(file))
     names(pixelGroupMap) <- "pixelGroup"
     rstLCC <- raster::resample(rstLCC,
-                               pixelGroupMap)
-    
+                               pixelGroupMap,method="ngb")
+
+    outLCC <- raster::resample(outLCC,pixelGroupMap,method="ngb")
     # Make file name
-    filePath <- file.path(tmp, paste0("PLC", "_", paste(paste0("it_",theIter), 
+    filePathLeading <- file.path(tmp, paste0("Leading", "_", paste(paste0("it_",theIter), 
                                                         paste0("ts_",ts), sep = "_"), 
                                       ".tif"))
+    filePathLCC <- file.path(tmp, paste0("LCC", "_", paste(paste0("it_",theIter), 
+                                                                   paste0("ts_",ts), sep = "_"), 
+                                             ".tif"))
     
     # Populate sheet
-    updated_LCC_tmp <- makeLCCfromCohortData(cohortData = cohort_data,
+    updated_Leading_tmp <- makeLCCfromCohortData(cohortData = cohort_data,
                                              pixelGroupMap = pixelGroupMap,
                                              rstLCC = rstLCC,
-                                             lccClassTable = lccClassTable)
+                                             lccClassTable = lccClassTable,
+                                             lccSparsenessTable=lccSparsenessTable)
     
-    staticMask = !((rstLCC==11)|(rstLCC==12)|(rstLCC==13))
-    updated_LCC_tmp[staticMask]=rstLCC[staticMask]
+    #freq(updated_Leading_tmp)
     
-    writeRaster(updated_LCC_tmp, overwrite = TRUE,
-                filename = filePath)
+    #staticMask = !((rstLCC==11)|(rstLCC==12)|(rstLCC==13))
+    #updated_LCC_tmp[staticMask]=rstLCC[staticMask]
+    writeRaster(updated_Leading_tmp, overwrite = TRUE,
+                filename = filePathLeading)
+
+    writeRaster(outLCC, overwrite = TRUE,
+                filename = filePathLCC)
     
-    rm(cohort_data);rm(pixelGroupMap);rm(updated_LCC_tmp)
+    rm(cohort_data);rm(pixelGroupMap);rm(updated_LCC_tmp);rm(updated_Leading_tmp)
     #sort(sapply(ls(), function(x) {object.size(get(x)) }))
     
-    tmpsheet <- data.frame(Iteration = theIter, 
-                           Timestep = ts, 
-                           RastersID = "Provincial Land Cover", 
-                           Filename = filePath, 
-                           TransformerID = transformerName)
-    
+    tmpsheet <- data.frame(RastersID = c("SpaDES Land Cover","SpaDES Leading Type"), 
+                           Filename = c(filePathLCC,filePathLeading) 
+                           )
+    tmpsheet$Iteration = theIter 
+    tmpsheet$Timestep = ts
+    tmpsheet$TransformerID = transformerName
     outputSheet <- bind_rows(outputSheet, tmpsheet)
     
   }
-  rstLCC=NULL
+  #rstLCC=NULL
   #sort( sapply(ls(),function(x){object.size(get(x))})) 
 }
 

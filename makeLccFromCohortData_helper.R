@@ -30,8 +30,8 @@
 
 makeLCCfromCohortData <- function(cohortData,
                                   pixelGroupMap,
-                                  rstLCC, 
-                                  lccClassTable){
+                                  rstLCC,
+                                  lccClassTable,lccSparsenessTable){
   #cohortData=cohort_data
   library(LandR)
   library(data.table)
@@ -72,58 +72,61 @@ makeLCCfromCohortData <- function(cohortData,
   # D) Simplifying
   cohortDataSim <- unique(cohortDataD[, c("pixelGroup", "standLeading")])
   
+
   ### Step 2: Define level of openness ###
   #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
   # A) Take original LCC classes and divide them into "dense" or "sparse"
   sparsenessMap <- rstLCC
   
-  sparsenessMap[!sparsenessMap[] %in% lccClassTable[["LCCclass"]]] <- NA
+  sparsenessMap[!sparsenessMap[] %in% lccSparsenessTable[["LCCclass"]]] <- NA
   
-  sparse <- lccClassTable[["LCCclass"]][grep(pattern = "sparse", x = lccClassTable[["standLeading"]])]
-  #open <- lccClassTable[["LCCclass"]][grep(pattern = "open", x = lccClassTable[["standLeading"]])]
-  dense <- lccClassTable[["LCCclass"]][grep(pattern = "dense", x = lccClassTable[["standLeading"]])]
+  sparse <- lccSparsenessTable[["LCCclass"]][grep(pattern = "sparse", x = lccSparsenessTable[["sparseness"]])]
+  open <- lccSparsenessTable[["LCCclass"]][grep(pattern = "open", x = lccSparsenessTable[["sparseness"]])]
+  dense <- lccSparsenessTable[["LCCclass"]][grep(pattern = "dense", x = lccSparsenessTable[["sparseness"]])]
   
   # dense = 1; open = 2; sparse =  3
   sparsenessMap[sparsenessMap[] %in% dense] <- -1
-  #sparsenessMap[sparsenessMap[] %in% open] <- -2
+  sparsenessMap[sparsenessMap[] %in% open] <- -2
   sparsenessMap[sparsenessMap[] %in% sparse] <- -3
   
   sparsenessMap <- -sparsenessMap
   
   sparsenessMap <- ratify(sparsenessMap)
   rat <- raster::levels(sparsenessMap)[[1]]
-  rat$sparseness <- c("dense")#, 
-                      #"open", 
-                      #"sparse")
+  rat$sparseness[rat$ID==1]="dense"
+  rat$sparseness[rat$ID==2]="open"
+  rat$sparseness[rat$ID==3]="sparse"
   levels(sparsenessMap) <- rat
   names(sparsenessMap) <- "sparsenessMap"
+  
   sparsenessMapDT <- raster::unique(na.omit(data.table::data.table(
     getValues(stack(sparsenessMap, pixelGroupMap)))))
-  
+
   finalDT  <- merge(cohortDataSim, sparsenessMapDT, all.x = TRUE)
   
   finalDT <- merge(finalDT, data.table(sparsenessMap = c(1,2,3), 
                                        sparseness = c("dense", 
-                                                      #"open", 
+                                                      "open", 
                                                       "sparse")),
                    by = "sparsenessMap", all.x = TRUE)
+  finalDT=subset(finalDT,!is.na(sparseness))
   finalDT[, standLeading  := paste(standLeading, sparseness, sep = "_")]
+  finalDT = merge(finalDT,lccClassTable,by="standLeading")  
   
-  # Because we have 2 categories of pureCon_sparse (8 and 32 -- which is treed lichen bog or treed wetland),
-  # we need to remove one from the lccClassTable
-  lccClassTable <- unique(lccClassTable, by = "standLeading")
-  finalDT <- merge(finalDT, lccClassTable, by = "standLeading", all.x = TRUE)
-  
+  #Pixel Groups assigned to more than one sparseness class. why?
+  #subset(as.data.frame(table(finalDT$pixelGroup)),Freq>1)
+  #subset(finalDT,pixelGroup==2110)
+
   # Get the new classes to the LCC where they are supposed to be
   newLCCClass <- SpaDES.tools::rasterizeReduced(reduced = finalDT, 
                                                 fullRaster = pixelGroupMap, 
                                                 newRasterCols = "LCCclass", 
                                                 mapcode = "pixelGroup")
-  
+
   DT <- data.table(pixelID = 1:ncell(newLCCClass),
                    getValues(stack(rstLCC, newLCCClass)))
   names(DT) <- c("pixelID", "LCC", "newLCC")
-  DT[, updatedLCC := fifelse(!is.na(newLCC), newLCC, LCC)]
+  DT[, updatedLCC := fifelse(!is.na(newLCC), newLCC, newLCC)]
   updatedLCCras <- raster::setValues(x = raster(rstLCC), 
                                      values = DT[["updatedLCC"]])
   updatedLCCras <- floor(updatedLCCras)

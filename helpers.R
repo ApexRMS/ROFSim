@@ -36,24 +36,14 @@ GetSingleValueExpectData <- function(df, name) {
 }
 
 e = ssimEnvironment()
-GLOBAL_Session = session()
-GLOBAL_Library = ssimLibrary(session = GLOBAL_Session)
-GLOBAL_Project = project(GLOBAL_Library, project = as.integer(e$ProjectId))
-GLOBAL_Scenario = scenario(GLOBAL_Library, scenario = as.integer(e$ScenarioId))
-GLOBAL_RunControl = GetDataSheetExpectData("ROFSim_RunControl", GLOBAL_Scenario)
-GLOBAL_MaxIteration = GetSingleValueExpectData(GLOBAL_RunControl, "MaximumIteration")
-GLOBAL_MinIteration = GetSingleValueExpectData(GLOBAL_RunControl, "MinimumIteration")
-GLOBAL_MinTimestep = GetSingleValueExpectData(GLOBAL_RunControl, "MinimumTimestep")
-GLOBAL_MaxTimestep = GetSingleValueExpectData(GLOBAL_RunControl, "MaximumTimestep")
-GLOBAL_TotalIterations = (GLOBAL_MaxIteration - GLOBAL_MinIteration + 1)
-GLOBAL_TotalTimesteps = (GLOBAL_MaxTimestep - GLOBAL_MinTimestep + 1)
+
 
 # ROFSIM helpers ----------------------------------------------------------
 
 ## Functions for wildcard
 
 filterInputs <- function(params, iter, ts, useMostRecent=F,min_ts = 1){
-  #params=subset(allParams$RasterFile,!is.na(Timestep));iter=1;ts=2050;min_ts=2020;useMostRecent="RasterID"
+  #params=subset(allParams$RasterFile,is.na(Timestep));iter=1;ts=2050;min_ts=2020;useMostRecent="RastersID"
   # Cases where One or Both columns are missing
   if(!sum(is.element(names(params), "Iteration"))){
     print("No Iteration column")
@@ -73,6 +63,7 @@ filterInputs <- function(params, iter, ts, useMostRecent=F,min_ts = 1){
     params$Timestep <- ts
   }
   
+  
   # Fill in the NAs for filtering
   params$Iteration <- fillWildcardITER(params$Iteration, iter)
   params$Timestep <- fillWildcardTS(params$Timestep, ts, min_ts)
@@ -80,8 +71,15 @@ filterInputs <- function(params, iter, ts, useMostRecent=F,min_ts = 1){
   prevs <- subset(params, Iteration == iter & Timestep < ts)
   theSubset <- subset(params, Iteration == iter & Timestep == ts)
   
+  if(nrow(theSubset) == 0 && nrow(prevs) == 0){
+    return(theSubset)
+  }
+  
+  noChng <- FALSE
+  
   if((useMostRecent!=F)&(nrow(prevs)>0)){
     if(nrow(theSubset)==0){
+      noChng <- TRUE
       missingLayers=unique(prevs[[useMostRecent]])
     }else{
       missingLayers=setdiff(prevs[[useMostRecent]],theSubset[[useMostRecent]])
@@ -103,6 +101,7 @@ filterInputs <- function(params, iter, ts, useMostRecent=F,min_ts = 1){
       }
     }
   }
+  theSubset$noChng <- noChng
   
   return(theSubset)
 }

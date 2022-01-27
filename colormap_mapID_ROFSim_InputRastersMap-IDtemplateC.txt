@@ -1,0 +1,29 @@
+# Syncrosim Generated Provincial Land Cover Color Map (QGIS-compatible),,,,,
+INTERPOLATION:DISCRETE
+0,192,192,192,255,No Data
+1,0,145,84,255,Clear Open Water
+2,0,145,84,255,Turbid Water
+3,11,134,0,255,Intertidal Mudflat
+4,153,247,36,255,Intertidal Marsh
+5,83,178,0,255,Supertidal Marsh
+6,1,88,0,255,Freshwater Marsh
+7,17,142,49,255,Heath
+8,35,178,0,255,Thicket Swamp
+9,31,211,31,255,Coniferous Swamp
+10,193,246,16,255,Deciduous Swamp
+11,83,161,117,255,Open Fen
+12,66,172,0,255,Treed Fen
+13,105,230,67,255,Open Bog
+14,177,214,66,255,Treed Bog
+15,152,255,27,255,Sparse Treed
+16,236,130,0,255,Deciduous Treed
+17,236,130,0,255,Mixed Treed
+18,215,169,29,255,Coniferous Treed
+19,167,47,111,255,Disturbance - Non and Sparse Woody
+20,81,134,90,255,Disturbance - Treed and/or Shrub
+21,249,255,157,255,Sand/Gravel/Mine Tailings
+22,198,236,115,255,Bedrock
+23,230,192,103,255,Community/Infrastructure
+24,182,128,80,255,Agriculture
+-9,192,192,192,255,Cloud/Shadow
+-99,192,192,192,255,Other
