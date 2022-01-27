@@ -364,9 +364,15 @@ if (doRun) {
   saveDatasheet(cbSpdsScn, cc, name = cSheet, append = FALSE)
   # datasheet(cbSpdsScn,cSheet)
 
-  cbsRes <- run(cbSpdsScn)
+  cbSpdsRes <- run(cbSpdsScn)
 }
 
+# Get summary of simulation times
+# purrr::map_dfr(lst(cbCurRes, cbAnthroRes, cbSpdsRes,
+#                    datBaselineRes, datAnthroRes, datSpdsRes),
+#                ~rsyncrosim::runLog(.x) %>%
+#                  stringr::str_extract("Total simulation .*")) %>%
+#   t()
 
 # add legend to landcover - after map is created in UI ##########
 
