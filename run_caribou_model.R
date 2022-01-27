@@ -153,7 +153,6 @@ distMetricsAll <- habitatUseAll
 distMetricsTabAll <- habitatUseAll
 popMetricsTabAll <- habitatUseAll
 
-
 allParams$RasterFile=unique(allParams$RasterFile)
 allParams$ExternalFile=unique(allParams$ExternalFile)
 
@@ -184,7 +183,7 @@ for (iteration in iterationSet) {
     }
     print(iteration)
     print(timestep)
-    envReportProgress(iteration, timestep)
+    progressBar(type = "report", iteration, timestep)
     
     # Filter inputs based on iteration and timestep
     InputRastersNA <- filterInputs(subset(allParams$RasterFile,is.na(Timestep)), 
@@ -205,7 +204,7 @@ for (iteration in iterationSet) {
     } else {
       doLandscape <- TRUE
     }
-    
+
     InputRasters=rbind(InputRastersNA,InputRastersT)
     InputRasters=subset(InputRasters,!is.na(Filename))
     InputVectors=rbind(InputVectorsNA,InputVectorsT)
@@ -513,4 +512,4 @@ if(is.null(doDistMetrics)||doDistMetrics){
   }
 }
 
-envEndSimulation()
+progressBar("end")
