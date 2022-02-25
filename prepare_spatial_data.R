@@ -89,11 +89,8 @@ landCoverName <- landCoverPth$names
 landCoverPth <- landCoverPth %>% 
   pull(Filename)
 
-
-
-#TODO: change names of polygons to study area. should Ranges be treated differently?
 # get projectPoly
-projectPolyPth <- filter(allParams$ExternalFile, PolygonsID == "Ranges") %>% 
+projectPolyPth <- filter(allParams$ExternalFile, PolygonsID == "Study Area") %>% 
   mutate(names = paste0(gsub(" ", "_", PolygonsID), 
                         "_iter_", Iteration,
                         "_ts_", Timestep))
@@ -154,7 +151,7 @@ if(nrow(linFeatsList) > 0){
 
 # make other filenames into named list
 polyFiles <- allParams$ExternalFile %>% 
-  filter(!PolygonsID %in% c("Linear Features", "Ranges")) %>% 
+  filter(!PolygonsID %in% c("Linear Features", "Study Area")) %>% 
   mutate(names = paste0(gsub(" ", "_", PolygonsID), 
                         "_iter_", Iteration,
                         "_ts_", Timestep))

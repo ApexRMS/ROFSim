@@ -73,6 +73,7 @@
                 <record columns="Name" values="Eskers"/>
                <record columns="Name" values="Linear Features"/>
                <record columns="Name" values="Ranges"/>
+               <record columns="Name" values="Study Area"/>
               </defaultRecords>
             </datasheet>
           </datasheets>

@@ -11,6 +11,8 @@ iters <- c("ROF_CNRM-ESM2-1_SSP370_res125_rep03", "ROF_CNRM-ESM2-1_SSP370_res125
 inPath <- file.path(sourceData, "SpaDESOutputs/iter/iter.qs")
 sourceData2 <- sourceData
 
+# Ranges to use in projections
+rangesUse <- c("Missisa")
 # sourceData = "C:/Users/HughesJo/Documents/InitialWork/OntarioFarNorth/RoFModel/"
 # cDir = paste0(sourceData,"/UI")
 # iters = c("ROF_CNRM-ESM2-1_SSP585_res125_rep02", "ROF_CNRM-ESM2-1_SSP370_res125_rep04")
@@ -32,6 +34,12 @@ allScn <- scenario(cProj)
 allRes <- subset(allScn, allScn$isResult == "Yes")
 
 if (doRun) {
+  # Make a study area polygon that includes only the selected ranges
+  all_rngs <- sf::read_sf(file.path(sourceData2, "/project_ranges.shp"))  
+  sf::write_sf(dplyr::filter(all_rngs,RANGE_NAME %in% rangesUse),
+               file.path(sourceData2, "/study_area.shp"))
+  rm(all_rngs)
+  
   # Make sure the library uses the correct R installation
   rConfig <- datasheet(cLib, name = "core_RConfig")
   rConfig <- addRow(rConfig, c(ExePath = list.files(R.home("bin"), "Rscript",
@@ -102,6 +110,8 @@ if (doRun) {
   cSheet <- "ROFSim_ExternalFile"
   cc <- data.frame(PolygonsID = "Ranges", 
                    File = file.path(sourceData2, "/project_ranges.shp"))
+  cc <- rbind(cc, data.frame(PolygonsID = "Study Area", 
+                             File = file.path(sourceData2, "/study_area.shp")))
   saveDatasheet(datContextScn, cc, name = cSheet, append = FALSE)
   # datasheet(datContextScn,cSheet)
 }
@@ -212,7 +222,7 @@ if (doRun) {
   # datasheet(cbCurScn,cSheet)
 
   cSheet <- "ROFSim_RunCaribouRange"
-  cc <- data.frame(Range = "Missisa", CoeffRange = "Missisa")
+  cc <- data.frame(Range = rangesUse, CoeffRange = rangesUse)
   saveDatasheet(cbCurScn, cc, name = cSheet)
   # datasheet(cbCurScn,cSheet)
 
