@@ -12,6 +12,7 @@
         <transformer name="makeLCCFromCohortData" />
         <transformer name="PrepareSpatialData" />
         <transformer name="RunCaribouHabitatModel" />
+        <transformer name="RunBirdModels" />
       </include>
 
       <datafeeds>
@@ -84,6 +85,18 @@
                 <column name="CaribouRangeID" dataType="Integer" isPrimary="True" />
                 <column name="ProjectID" dataType="Integer" />
                 <column name="Name" dataType="String" allowDbNull="False" />
+              </columns>
+            </datasheet>
+          </datasheets>
+        </datafeed>
+        
+        <datafeed name="BirdSpecies" displayName="Bird Species" dataScope="Project">
+          <datasheets>
+            <datasheet name="BirdSpecies" displayName="Bird Species" valueMember="BirdSpeciesID" displayMember="SpeciesCode">
+              <columns>
+                <column name="BirdSpeciesID" dataType="Integer" isPrimary="True" />
+                <column name="ProjectID" dataType="Integer" />
+                <column name="SpeciesCode" dataType="String" allowDbNull="False" />
               </columns>
             </datasheet>
           </datasheets>
@@ -529,6 +542,95 @@
         <datafeed name="RunControl" />
         <datafeed name="RunCaribouRange" />
         <datafeed name="CaribouModelOptions" />
+
+      </pipeline>
+
+    </transformer>
+    
+    <transformer name="RunBirdModels" displayName="Bird Models" isRunnable="True" programName="Rscript" className="SyncroSim.StochasticTime.StochasticTimeTransformer" classAssembly="SyncroSim.StochasticTime" configurationSheet="ROFSim_RunControl" programArguments="run_bird_models.R">
+
+      <datafeeds>
+
+        <!-- Input Datafeeds -->
+        
+        <datafeed name="RunBirdSpecies" displayName="Bird Species" dataScope="Scenario">
+          <datasheets>
+            <datasheet name="RunBirdSpecies" displayName="Bird Species">
+              <columns>
+                <column name="RunBirdSpeciesID" dataType="Integer" isPrimary="True" />
+                <column name="ScenarioID" dataType="Integer" />
+                <column name="BirdSpecies" displayName="Bird Species" dataType="Integer" validationType="Datasheet" formula1="BirdSpecies" allowDbNull="False" />
+              </columns>
+            </datasheet>
+          </datasheets>
+        </datafeed>
+        
+        <!-- Not needed for Birds?
+        <datafeed name="CaribouModelOptions" displayName="Caribou Model Options" dataScope="Scenario">
+          <datasheets>
+            <datasheet name="CaribouModelOptions" displayName="Caribou Model Options" isSingleRow="True">
+              <columns>
+                <column name="CaribouModelOptionsID" dataType="Integer" isPrimary="True" />
+                <column name="ScenarioID" dataType="Integer" />
+                <column name="RunDistMetrics" displayName="Run ECCC Disturbance Metrics" dataType="Boolean" />
+                <column name="RunDemographicModel" displayName="Run Aspatial Demographic Model" dataType="Boolean" />
+                <column name="RunCaribouHabitat" displayName="Run Caribou Habitat Model" dataType="Boolean" />
+                <column name="bufferWidth" displayName="ECCC Buffer Width" dataType="Integer" validationType="WholeNumber" validationCondition="Greater" formula1="0" format="d"/>
+              </columns>
+            </datasheet>
+          </datasheets>
+        </datafeed>
+        -->
+        
+        <!-- Don't think needed for Birds
+        <datafeed name="CaribouDataSource" displayName="Data Sources" dataScope="Scenario">
+          <datasheets>
+            <datasheet name="CaribouDataSource" displayName="Data Sources" isSingleRow="True">
+              <columns>
+                <column name="CaribouDataSourceID" dataType="Integer" isPrimary="True" />
+                <column name="ScenarioID" dataType="Integer" />
+                <column name="LandCoverRasterID" displayName="Land Cover (Raster)" dataType="Integer" validationType="Datasheet" formula1="Rasters" allowDbNull="False" />
+                <column name="ProjectShapeFileID" displayName="Project Area (Polygon)" dataType="Integer" validationType="Datasheet" formula1="Polygons" allowDbNull="False" />
+                <column name="EskerRasterID" displayName="Eskers (Raster)" dataType="Integer" validationType="Datasheet" formula1="Rasters" allowDbNull="True" />
+                <column name="EskerShapeFileID" displayName="Eskers (Polygon)" dataType="Integer" validationType="Datasheet" formula1="Polygons" allowDbNull="True" />
+                <column name="LinearFeatureRasterID" displayName="Linear Feature (Raster)" dataType="Integer" validationType="Datasheet" formula1="Rasters" allowDbNull="True" />
+                <column name="LinearFeatureShapeFileID" displayName="Linear Feature (Polygon)" dataType="Integer" validationType="Datasheet" formula1="Polygons" allowDbNull="True" />
+                <column name="NaturalDisturbanceRasterID" displayName="Natural Disturbances (Raster)" dataType="Integer" validationType="Datasheet" formula1="Rasters" allowDbNull="True" />
+                <column name="AnthropogenicRasterID" displayName="Anthropogenic Disturbances (Raster)" dataType="Integer" validationType="Datasheet" formula1="Rasters" allowDbNull="True" />
+                <column name="HarvestRasterID" displayName="Harvest (Raster)" dataType="Integer" validationType="Datasheet" formula1="Rasters" allowDbNull="True" />              </columns>
+            </datasheet>
+          </datasheets>
+        </datafeed> -->
+
+        <!-- Outputs Datafeeds -->
+
+        <datafeed name="OutputBirdDensity" displayName="Output Bird Density" dataScope="Scenario" isOutput="True">
+          <datasheets>
+            <datasheet name="OutputBirdDensity" displayName="Output Bird Density">
+              <columns>
+                <column name="OutputBirdDensityID" dataType="Integer" isPrimary="True" />
+                <column name="Iteration" dataType="Integer" validationType="WholeNumber" validationCondition="Greater" formula1="0" format="d" isOptional="True" />
+                <column name="Timestep" dataType="Integer" validationType="WholeNumber" validationCondition="GreaterEqual" formula1="0" isOptional="True" />
+                <column name="ScenarioID" dataType="Integer" />
+                <column name="BirdSpeciesID" dataType="Integer" validationType="Datasheet" formula1="BirdSpecies" allowDbNull="False" />
+                <column name="FileName" dataType="String" isExternalFile="True" isRaster="True" bandColumn="Band" bandFilterColumn="SeasonID" allowDbNull="False" filenameCode="habuse" />
+                <column name="Band" dataType="Integer" isOptional="True" />
+              </columns>
+            </datasheet>
+          </datasheets>
+        </datafeed>
+
+      </datafeeds>
+
+      <pipeline>
+
+        <!--datafeed name="DataSummary" /-->
+        <datafeed name="RasterFile" />
+        <datafeed name="ExternalFile" />
+        <!--<datafeed name="CaribouDataSource" />-->
+        <datafeed name="RunControl" />
+        <datafeed name="RunBirdSpecies" />
+        <!--<datafeed name="CaribouModelOptions" />-->
 
       </pipeline>
 

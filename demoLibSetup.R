@@ -367,6 +367,12 @@ if (doRun) {
   cbSpdsRes <- run(cbSpdsScn)
 }
 
+# Bird Model setup #=====================
+
+# Make BirdSpecies table with names from model files in sourceData
+
+
+
 # Get summary of simulation times
 # purrr::map_dfr(lst(cbCurRes, cbAnthroRes, cbSpdsRes,
 #                    datBaselineRes, datAnthroRes, datSpdsRes),
