@@ -88,9 +88,6 @@ for (iteration in iterationSet) {
   for (tt in seq_along(timestepSet)) {
     #iteration=1;tt=1
     timestep=timestepSet[tt]
-    iteration=1;tt=1
-    #iteration=1;tt=1
-    timestep=timestepSet[tt]
     if(tt==length(timestepSet)){
       numSteps=1
     }else{
@@ -123,7 +120,6 @@ for (iteration in iterationSet) {
     InputRasters=subset(InputRasters,!is.na(Filename))
     InputVectors=rbind(InputVectorsNA,InputVectorsT)
     InputVectors=subset(InputVectors,!is.na(File))
-    InputRasters
     
     if(doLandscape){
       plcRas <-  tryCatch({
@@ -136,9 +132,9 @@ for (iteration in iterationSet) {
       # translate plc values to land cover class names
       plc_classes <- read.csv(file.path(allParams$BirdModelDir$BirdModelDir, 
                                         "plcClasses.csv"))
-      plc_classes <- plc_classes %>%
-        mutate(Class = Class %>% str_replace_all("[^[:alpha:]]", "_") %>%
-                 str_replace_all("\\_+", "_"))
+      
+      plc_classes$Class <- gsub("[^[:alpha:]]", "_", plc_classes$Class)
+      plc_classes$Class <- gsub("\\_+", "_", plc_classes$Class)
       
       names(plc_layers) <- plc_classes %>%
         filter(Code %in% raster::unique(plcRas)) %>%
@@ -148,13 +144,17 @@ for (iteration in iterationSet) {
         raster(filter(InputRasters, RastersID == "Eskers")$File) >0
       }, error = function(cond) { stop("Eskers are required")})
       
+      names(eskerRas) <- "esker"
+      
       # use linear feature raster in caribouMetrics and lines in disturbance
       linFeatRas <- tryCatch({
         filtered <- filter(InputRasters, RastersID == "Linear Features")$File
         raster(filtered) > 0
       }, error = function(cond) { NULL })
       
-      projectPol <- st_read(filter(InputVectors, RastersID == "Study Area")$File)
+      names(linFeatRas) <- "roads"
+      
+      projectPol <- st_read(filter(InputVectors, PolygonsID == "Study Area")$File)
       
       # do moving window
       rastfw750 <- raster::focalWeight(plc_layers, 750, type = "Gauss")
@@ -163,10 +163,10 @@ for (iteration in iterationSet) {
                                                   transform_function = "MULTIPLY",
                                                   reduce_function = "SUM",
                                                   mean_divider = "KERNEL_COUNT"))
-      plc_layers750 <- map(plc_layers750, ~`names<-`(.x, paste0(names(.x), "_750")))
+      plc_layers750 <- purrr::map(plc_layers750, ~`names<-`(.x, paste0(names(.x), "_750")))
       
       # make a raster stack of predictors
-      pred_stk <- raster::stack(plc_layers750, linFeatRas, eskerRas)
+      pred_stk <- raster::stack(c(plc_layers750, linFeatRas, eskerRas))
       
       SPP <- allParams$RunBirdSpecies$BirdSpecies
       
@@ -174,12 +174,17 @@ for (iteration in iterationSet) {
       bird_mods <- purrr::map(SPP,
                               ~list.files(file.path(sourceData, "ROFBirdModels"),
                                           pattern = paste0(.x, ".*rds"),
-                                          full.names = TRUE))
+                                          full.names = TRUE) %>% readRDS())
+      
+      purrr::map(bird_mods, ~setdiff(.x$var.names, names(pred_stk)))
+      
+      # TODO: make 0 rasters for these variables since they are not present ???
+      # Double check the alignment of the names.
       
       # make predictions
       pred_out <- purrr::map2(
         bird_mods, SPP,
-        ~raster::predict(pred_stk, readRDS(.x),
+        ~raster::predict(pred_stk, .x,
                          filename = file.path(e$TransferDirectory,
                                               paste0(paste("OutputBirdDensity",
                                                            SPP,
