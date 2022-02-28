@@ -378,10 +378,40 @@ if (doRun) {
 }
 
 # Bird Model setup #=====================
-
 # Make BirdSpecies table with names from model files in sourceData
 
+if(doRun){
+  # ***Assumes species code is first 4 characters of model file name***
+  fls <-  list.files(file.path(sourceData, "ROFBirdModels"),
+                     pattern = ".rds")
+  bird_sp <- regmatches(fls, regexpr("....", fls))
+  
+  cSheet <- "BirdSpecies"
+  cc <- data.frame(SpeciesCode = bird_sp)
+  saveDatasheet(cProj, cc, name = cSheet, append = FALSE)
+}
 
+
+brdCurScn <- scenario(cProj, "Birds - current")
+
+if(doRun){
+  cSheet <- "core_Pipeline"
+  cc <- data.frame(StageNameID = "Bird Models", RunOrder = 1)
+  saveDatasheet(brdCurScn, cc, name = cSheet)
+  
+  cSheet <- "RunBirdSpecies"
+  cc <- data.frame(BirdSpecies = "ALFL")
+  saveDatasheet(brdCurScn, cc, name = cSheet, append = FALSE)
+  
+  cSheet <- "BirdModelDir"
+  cc <- data.frame(BirdModelDir = file.path(sourceData, "ROFBirdModels"))
+  saveDatasheet(brdCurScn, cc, name = cSheet, append = FALSE)
+  
+  dependency(brdCurScn, rcCurScn)
+  dependency(brdCurScn, datBaselineRes)
+  
+  run(brdCurScn)
+}
 
 # Get summary of simulation times
 # purrr::map_dfr(lst(cbCurRes, cbAnthroRes, cbSpdsRes,
