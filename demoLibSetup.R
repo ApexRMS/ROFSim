@@ -65,7 +65,8 @@ if (doRun) {
   cc <- data.frame(
     Name = c("Caribou Ranges", "Harvest", "Anthropogenic Disturbance",
              "Natural Disturbances", "Provincial Land Cover", "SpaDES Land Cover", 
-             "SpaDES Stand Age", "SpaDES Leading Type", "Linear Features", "Eskers")
+             "SpaDES Stand Age", "SpaDES Leading Type", "Linear Features", "Eskers", 
+             "Eskers400")
   )
   cc$SpaDESSimObject[cc$Name == "SpaDES Stand Age"] <- "standAgeMap"
   saveDatasheet(cProj, cc, name = cSheet)
@@ -230,12 +231,12 @@ if (doRun) {
   cc <- data.frame(
     LandCoverRasterID = "Provincial Land Cover",
     ProjectShapeFileID = "Ranges",
-    EskerShapeFileID = "Eskers",
+    EskerShapeFileID = "Eskers400",
     LinearFeatureShapeFileID = "Linear Features",
     NaturalDisturbanceRasterID = "Natural Disturbances",
     HarvestRasterID = "Harvest",
     AnthropogenicRasterID = "Anthropogenic Disturbance",
-    EskerRasterID = "Eskers",
+    EskerRasterID = "Eskers400",
     LinearFeatureRasterID = "Linear Features"
   )
   saveDatasheet(cbCurScn, cc, name = cSheet)
@@ -363,12 +364,12 @@ if (doRun) {
   cc <- data.frame(
     LandCoverRasterID = "SpaDES Land Cover",
     ProjectShapeFileID = "Ranges",
-    EskerShapeFileID = "Eskers",
+    EskerShapeFileID = "Eskers400",
     LinearFeatureShapeFileID = "Linear Features",
     NaturalDisturbanceRasterID = "SpaDES Stand Age",
     HarvestRasterID = "Harvest",
     AnthropogenicRasterID = "Anthropogenic Disturbance",
-    EskerRasterID = "Eskers",
+    EskerRasterID = "Eskers400",
     LinearFeatureRasterID = "Linear Features"
   )
   saveDatasheet(cbSpdsScn, cc, name = cSheet, append = FALSE)
