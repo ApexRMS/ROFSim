@@ -133,6 +133,7 @@ for (iteration in iterationSet) {
       plc_classes <- read.csv(file.path(allParams$BirdModelDir$BirdModelDir, 
                                         "plcClasses.csv"))
       
+      plc_classes$Class <- trimws(plc_classes$Class)
       plc_classes$Class <- gsub("[^[:alpha:]]", "_", plc_classes$Class)
       plc_classes$Class <- gsub("\\_+", "_", plc_classes$Class)
       
@@ -140,6 +141,21 @@ for (iteration in iterationSet) {
         filter(Code %in% raster::unique(plcRas)) %>%
         pull(Class)
       
+      # make sure there is a raster for all possible classes because some are
+      # missing in Missisa
+      missing_classes <- setdiff(plc_classes$Class, names(plc_layers))
+      if(length(missing_classes) > 0){
+        missing_layers <- lapply(missing_classes, raster::init, x = plc_layers[[1]],
+                                 fun = function(x){rep(0, x)}, overwrite = TRUE)
+        
+        missing_layers <- lapply(seq_along(missing_layers), 
+                                 function(x){
+                                   names(missing_layers[[x]]) <- missing_classes[x] 
+                                   return(missing_layers[[x]])
+                                 })
+        plc_layers <- raster::addLayer(plc_layers, missing_layers)
+      }
+
       eskerRas <- tryCatch({
         raster(filter(InputRasters, RastersID == "Eskers")$File) >0
       }, error = function(cond) { stop("Eskers are required")})
@@ -148,7 +164,7 @@ for (iteration in iterationSet) {
       
       # use linear feature raster in caribouMetrics and lines in disturbance
       linFeatRas <- tryCatch({
-        filtered <- filter(InputRasters, RastersID == "Linear Features")$File
+        filtered <- filter(InputRasters, RastersID == "Roads")$File
         raster(filtered) > 0
       }, error = function(cond) { NULL })
       
@@ -172,14 +188,9 @@ for (iteration in iterationSet) {
       
       # load models
       bird_mods <- purrr::map(SPP,
-                              ~list.files(file.path(sourceData, "ROFBirdModels"),
+                              ~list.files(allParams$BirdModelDir$BirdModelDir,
                                           pattern = paste0(.x, ".*rds"),
                                           full.names = TRUE) %>% readRDS())
-      
-      purrr::map(bird_mods, ~setdiff(.x$var.names, names(pred_stk)))
-      
-      # TODO: make 0 rasters for these variables since they are not present ???
-      # Double check the alignment of the names.
       
       # make predictions
       pred_out <- purrr::map2(

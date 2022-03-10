@@ -66,7 +66,7 @@ if (doRun) {
     Name = c("Caribou Ranges", "Harvest", "Anthropogenic Disturbance",
              "Natural Disturbances", "Provincial Land Cover", "SpaDES Land Cover", 
              "SpaDES Stand Age", "SpaDES Leading Type", "Linear Features", "Eskers", 
-             "Eskers400")
+             "Eskers400", "Roads")
   )
   cc$SpaDESSimObject[cc$Name == "SpaDES Stand Age"] <- "standAgeMap"
   saveDatasheet(cProj, cc, name = cSheet)
