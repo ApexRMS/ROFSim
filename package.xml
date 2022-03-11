@@ -572,7 +572,7 @@
               <columns>
                 <column name="BirdModelDirID" dataType="Integer" isPrimary="True" />
                 <column name="ScenarioID" dataType="Integer" />
-                <column name="BirdModelDir" displayName="Bird Model Directory" dataType="String" isExternalFile="True" allowDbNull="True"/>
+                <column name="BirdModelDir" displayName="Bird Model Directory" dataType="String" isExternalFile="False" allowDbNull="True"/>
               </columns>
             </datasheet>
           </datasheets>
@@ -625,7 +625,7 @@
                 <column name="Timestep" dataType="Integer" validationType="WholeNumber" validationCondition="GreaterEqual" formula1="0" isOptional="True" />
                 <column name="ScenarioID" dataType="Integer" />
                 <column name="BirdSpeciesID" dataType="Integer" validationType="Datasheet" formula1="BirdSpecies" allowDbNull="False" />
-                <column name="FileName" dataType="String" isExternalFile="True" isRaster="True" bandColumn="Band" bandFilterColumn="SeasonID" allowDbNull="False" filenameCode="habuse" />
+                <column name="FileName" dataType="String" isExternalFile="True" isRaster="True" bandColumn="Band" bandFilterColumn="BirdSpeciesID" allowDbNull="False" filenameCode="habuse" />
                 <column name="Band" dataType="Integer" isOptional="True" />
               </columns>
             </datasheet>
@@ -642,7 +642,7 @@
         <!--<datafeed name="CaribouDataSource" />-->
         <datafeed name="RunControl" />
         <datafeed name="RunBirdSpecies" />
-        <!--<datafeed name="CaribouModelOptions" />-->
+        <datafeed name="BirdModelDir" />
 
       </pipeline>
 

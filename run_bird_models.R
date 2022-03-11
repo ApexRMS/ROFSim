@@ -145,8 +145,11 @@ for (iteration in iterationSet) {
       # missing in Missisa
       missing_classes <- setdiff(plc_classes$Class, names(plc_layers))
       if(length(missing_classes) > 0){
-        missing_layers <- lapply(missing_classes, raster::init, x = plc_layers[[1]],
-                                 fun = function(x){rep(0, x)}, overwrite = TRUE)
+        missing_layers <- lapply(missing_classes, function(y){
+          
+          raster::init (x = plc_layers[[1]], fun = function(x){rep(0, x)}, 
+                        overwrite = TRUE)
+        })
         
         missing_layers <- lapply(seq_along(missing_layers), 
                                  function(x){
