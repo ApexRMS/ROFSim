@@ -12,7 +12,7 @@ farNorthLandcover<-function(lTab,omitRare=NULL){
   evergreens$RGB1=evergreenCols[1,]
   evergreens$RGB2=evergreenCols[2,]
   evergreens$RGB3=evergreenCols[3,]
-  evergreens$type="conifer dense"
+  evergreens$type="Conifer Treed"
   evergreens$type[grepl("Swamp",evergreens$Label)|grepl("Fen",evergreens$Label)|grepl("Bog",evergreens$Label)]="conifer sparse wet"
 
   lTab
@@ -25,7 +25,7 @@ farNorthLandcover<-function(lTab,omitRare=NULL){
   mix$RGB1=mixCols[1,]
   mix$RGB2=mixCols[2,]
   mix$RGB3=mixCols[3,]
-  mix$type="mixed dense"
+  mix$type="Mixed Treed"
   mix$type[grepl("Sparse Treed",mix$Label,fixed=T)]="mixed sparse"
   
   #decid
@@ -37,7 +37,7 @@ farNorthLandcover<-function(lTab,omitRare=NULL){
   decid$RGB1=decidCols[1,]
   decid$RGB2=decidCols[2,]
   decid$RGB3=decidCols[3,]
-  decid$type="deciduous dense"
+  decid$type="Deciduous Treed"
   decid$type[grepl("Swamp",decid$Label)]="deciduous sparse wet"
   
   if(is.null(omitRare)){
