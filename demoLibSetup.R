@@ -3,23 +3,23 @@
 library(rsyncrosim)
 
 # should scenarios be run or should existing results be used?
-doRun <- F
+doRun <- TRUE
 
-#cDir <- "C:/Users/endicotts/Documents/gitprojects/ROFSyncSim/"
-#sourceData <- "C:/Users/endicotts/Documents/gitprojects/ROFSyncSim/ROFDemo_data"
+cDir <- "C:/Users/endicotts/Documents/gitprojects/ROFSyncSim/"
+sourceData <- "C:/Users/endicotts/Documents/gitprojects/ROFSyncSim/ROFDemo_data"
 #iters <- c("ROF_CNRM-ESM2-1_SSP370_res125_rep03", "ROF_CNRM-ESM2-1_SSP370_res125_rep04")
-#inPath <- file.path(sourceData, "SpaDESOutputs/iter/iter.qs")
-#sourceData2 <- sourceData
+inPath <- file.path(sourceData, "SpaDESOutputs/iter/iter.qs")
+sourceData2 <- sourceData
 
 # Ranges to use in projections
 rangesUse <- c("Missisa")
- sourceData = "C:/Users/HughesJo/Documents/InitialWork/OntarioFarNorth/RoFModel/"
- cDir = paste0(sourceData,"/UI")
- iters = c("ROF_CanESM5_SSP370_run01", "ROF_CanESM5_SSP370_run02")
- inPath = file.path(sourceData, "SpaDESOutputs/v3reduced/iter/iter.qs")
- sourceData2 = "C:/Users/HughesJo/Documents/InitialWork/OntarioFarNorth/ROFData"
+ # sourceData = "C:/Users/HughesJo/Documents/InitialWork/OntarioFarNorth/RoFModel/"
+ # cDir = paste0(sourceData,"/UI")
+  iters = c("ROF_CanESM5_SSP370_run01", "ROF_CanESM5_SSP370_run02")
+ # inPath = file.path(sourceData, "SpaDESOutputs/v3reduced/iter/iter.qs")
+ # sourceData2 = "C:/Users/HughesJo/Documents/InitialWork/OntarioFarNorth/ROFData"
 
-libName <- "ROFDemoS1"
+libName <- "ROFDemoS2"
 
 # delete(paste0(cDir,"/",libName,".ssim"),force=T)
 
@@ -104,7 +104,7 @@ if (doRun) {
 
   cSheet <- "ROFSim_RasterFile"
   cc <- data.frame(RastersID = "Provincial Land Cover", 
-                   Filename = file.path(sourceData2, "plc250.tif"))
+                   Filename = file.path(sourceData2, "plc125.tif"))
   saveDatasheet(datContextScn, cc, name = cSheet, append = FALSE)
   # datasheet(datContextScn,cSheet)
 
@@ -143,9 +143,9 @@ if (doRun) {
 
   cSheet <- "ROFSim_RasterFile"
   cc <- data.frame(RastersID = "Natural Disturbances",
-                   Filename = file.path(sourceData2, "fireAFFES2020_250.tif"))
+                   Filename = file.path(sourceData2, "fireAFFES2020_125.tif"))
   cc <- rbind(cc, data.frame(RastersID = "Harvest", 
-                             Filename = file.path(sourceData2, "harvMNRF2018_250.tif")))
+                             Filename = file.path(sourceData2, "harvMNRF2018_125.tif")))
   cc$Timestep <- NA
   saveDatasheet(datBaselineScn, cc, name = cSheet, append = FALSE)
   # datasheet(datBaselineScn,cSheet)
@@ -186,7 +186,7 @@ if (doRun) {
   cSheet <- "ROFSim_RasterFile"
   cc <- data.frame(
     RastersID = "Anthropogenic Disturbance", Timestep = 2040,
-    Filename = file.path(sourceData2, "mines_ras250.tif")
+    Filename = file.path(sourceData2, "mines_ras125.tif")
   )
   saveDatasheet(datAnthroScn, cc, name = cSheet, append = FALSE)
   # datasheet(datAnthroScn,cSheet)
