@@ -164,10 +164,11 @@ for (theIter in iterationSet){
     
     # Populate sheet
     rStack <- getLCCFromCohortData(cohortData = cohort_data,
-                                             pixelGroupMap = pixelGroupMap,
-                                             rstLCC = rstLCC,
-                                             lccClassTable = lccClassTable,
-                                             lccSparsenessTable=lccSparsenessTable)
+                                   pixelGroupMap = pixelGroupMap,
+                                   rstLCC = rstLCC,
+                                   lccClassTable = lccClassTable,
+                                   lccSparsenessTable=lccSparsenessTable,
+                                   e = e)
 
     
     #identify recently disturbed areas

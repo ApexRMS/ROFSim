@@ -54,16 +54,22 @@ getSpadesOutputs<-function(spadesObjectPath,timestepSet){
 getLCCFromCohortData <- function(cohortData,
                                   pixelGroupMap,
                                   rstLCC,
-                                  lccClassTable,lccSparsenessTable){
+                                  lccClassTable,lccSparsenessTable, e){
   #cohortData=cohort_data
-  library(LandR)
   library(data.table)
   library(raster)
   
   ### Step 1: Define vegetation type ###
   #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
   # A) Assign type for each species based on equivalence table (using LandR)
-  sppEquivalencies <- LandR::sppEquivalencies_CA
+  if(requireNamespace("LandR", quietly = TRUE)){
+    sppEquivalencies <- LandR::sppEquivalencies_CA
+  } else {
+    # NOTE: this will not get updates added to LandR package but avoids dep on
+    # github only package
+    sppEquivalencies <- read.csv(file.path(e$PackageDirectory, "LandR_sppEquivalencies_CA.csv"))
+    sppEquivalencies <- as.data.table(sppEquivalencies)
+  }
   
   for (x in 1:length(unique(cohortData$speciesCode))) {
     cohortData[speciesCode == unique(cohortData$speciesCode)[x],
