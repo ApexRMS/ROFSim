@@ -177,17 +177,21 @@ for (theIter in iterationSet){
                               pull(file))
     names(ageMap) <- "age"
     isDisturbed <- ageMap <= unique(youngTab$AgeThreshold)
-    isDisturbed[!isDisturbed] = NA
+    isDisturbed <- reclassify(isDisturbed, rcl = matrix(c(0, NA), ncol = 2), 
+                              right = NA)
     
-    DT <- data.table(pixelID = 1:ncell(rStack[[1]]),
-                     getValues(stack(rStack[[1]], isDisturbed, rStack[[2]])))
-    names(DT) <- c("pixelID", "LCC", "isDisturbed", "treeTypes")
-    DT$isTreed = !is.na(DT$treeTypes)
-    DT <- merge(DT, youngTab,by="isTreed",all.x=T)
-    DT[, updatedLCC := fifelse(!is.na(isDisturbed), ID, LCC)]
-    DT <- setorder(DT, "pixelID")
-    updatedLCCras <- raster::setValues(x = rStack[[1]], 
-                                       values = DT[["updatedLCC"]])
+    # If isDisturbed and isTreed change LCC to 20 if isDisturbed and !isTreed 19
+    # otherwise LCC
+    isTreed <- !is.na(rStack[[2]])
+    
+    # if 1 disturbed and not treed if 2 disturbed and treed
+    toUpdate <- isDisturbed + isTreed
+    
+    updatedLCCras <- mask(rStack[[1]], toUpdate, maskvalue = 2, 
+                           updatevalue = filter(youngTab, isTreed) %>% pull(ID))
+    
+    updatedLCCras <- mask(updatedLCCras, toUpdate, maskvalue = 1, 
+                           updatevalue = filter(youngTab, !isTreed) %>% pull(ID))
 
     writeRaster(rStack[[2]], overwrite = TRUE,
                 filename = filePathLeading)
