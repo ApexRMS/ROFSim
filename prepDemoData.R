@@ -32,7 +32,7 @@ outRes <- 125
 # # extract it to the data folder of the current project
 # unzip("data/inputNV.zip", exdir = inData)
 
-outMiss <- file.path(sourceData, "Res_125_inputs")
+outMiss <- file.path(sourceData)
 
 if(!dir.exists(outMiss)){
   dir.create(outMiss)
@@ -46,7 +46,7 @@ plc16 <- terra::rast(file.path(inData, "Provincial-Landcover-2000/z16-27class.ti
 
 plc17 <- terra::rast(plc17Pth)
 
-plc17Pth2 <- paste0(tempfile(), ".tif")
+plc17Pth2 <- paste0(outMiss, "plc17_temp.tif")
 plc17 <- terra::project(plc17, terra::crs(plc16), method = "near", 
                         filename = plc17Pth2)
 rm(plc16, plc17)
@@ -55,28 +55,34 @@ plc16vrt <- terra::vrt(c(plc17Pth2,
                       file.path(inData, "Provincial-Landcover-2000/z16-27class.tif")),
                     paste0(tempfile(), ".vrt"))
 
-# Use the crs from the PLC data
-crsUse <- st_crs(plc16vrt)
-crsUseR <- crs(plc16vrt)
+
 # buffer project area to 6km because that is larger than the largest window
 # radius times 3 to account for offsets
 
 miss <- caribouRanges %>%
   filter(RANGE_NAME %in% c("Missisa", "James Bay", "Pagwachuan", "Nipigon")) %>%
-  st_transform(crsUse) %>%
+  st_transform(st_crs(plc16vrt)) %>%
   summarise(OGF_ID = first(OGF_ID),
             geometry = st_union(geometry) %>% st_buffer(6000 *3))
 
 # plc #=========================================================================
 plcMiss <- terra::crop(plc16vrt, miss, snap = "out")
 
-tmpltRastMiss <- plcMiss %>% terra::`res<-`(outRes)
+spds <- terra::rast(file.path(sourceData, "SpaDESOutputs/LCC.tif"))
+# Use the crs from the SpaDES data
+crsUse <- st_crs(spds)
+crsUseR <- terra::crs(spds)
 
-plcMiss250 <- terra::resample(plcMiss, tmpltRastMiss, method = "near",
-                               filename = file.path(outMiss, 
-                                                    paste0("plc", outRes, ".tif")),
-                               overwrite = TRUE, datatype = "INT1U")
+plcMiss <- terra::project(plcMiss, spds, method = "near", align = TRUE,
+                          filename = file.path(outMiss, 
+                                               paste0("plc", outRes, ".tif")),
+                          overwrite = TRUE, datatype = "INT1U")
 
+tmpltRastMiss <- plcMiss
+
+terra::compareGeom(spds, plcMiss, ext= FALSE, rowcol = F, res = T)
+
+miss <- st_transform(miss, crsUse)
 # plcMiss250 <- raster::aggregate(plcMiss, fact = 10, fun = modal,
 #                                 filename = paste0(outMiss, "plc250.tif"),
 #                                 overwrite = TRUE, datatype = "INT1U")
@@ -284,4 +290,6 @@ harvMNRFROF2018 <- fasterize::fasterize(harvMNRFROF %>% st_cast(),
                                         tmpltRastMiss, 
                                         background = 0)
 
-raster::writeRaster(harvMNRFROF2018, file.path(outMiss, paste0("harvMNRF2018_", outRes,".tif")))
+raster::writeRaster(harvMNRFROF2018, 
+                    file.path(outMiss, paste0("harvMNRF2018_", outRes,".tif")),
+                    overwrite = TRUE, datatype = "INT1U")
