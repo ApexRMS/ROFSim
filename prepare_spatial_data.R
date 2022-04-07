@@ -189,10 +189,10 @@ allSpatialInputs <- loadSpatialInputs(
                       polyFiles, 
                       roadsOnly, 
                       Eskers400) %>% compact(),
-  convertToRast = c(names(linFeatsListRast), 
-                    names(Eskers400),
-                    names(roadsOnly),
-                    names(polyFiles)[which(grepl("Esker", names(polyFiles)))]),
+  convertToRast = c(names(roadsOnly),
+  names(polyFiles)[which(grepl("Esker", names(polyFiles)))]),
+  convertToRastDens = c(names(linFeatsListRast), 
+                    names(Eskers400)),
   useTemplate = c(names(linFeatsListRast), 
                   names(Eskers400))
 )

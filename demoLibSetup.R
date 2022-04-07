@@ -3,7 +3,7 @@
 library(rsyncrosim)
 
 # should scenarios be run or should existing results be used?
-doRun <- TRUE
+doRun <- F
 
 cDir <- "C:/Users/endicotts/Documents/gitprojects/ROFSyncSim/"
 sourceData <- "C:/Users/endicotts/Documents/gitprojects/ROFSyncSim/ROFDemo_data"
@@ -19,7 +19,7 @@ rangesUse <- c("Missisa")
  # inPath = file.path(sourceData, "SpaDESOutputs/v3reduced/iter/iter.qs")
  # sourceData2 = "C:/Users/HughesJo/Documents/InitialWork/OntarioFarNorth/ROFData"
 
-libName <- "ROFDemoS2"
+libName <- "ROFDemoS1"
 
 # delete(paste0(cDir,"/",libName,".ssim"),force=T)
 
@@ -44,7 +44,7 @@ if (doRun) {
   rConfig <- datasheet(cLib, name = "core_RConfig")
   rConfig <- addRow(rConfig, c(ExePath = list.files(R.home("bin"), "Rscript",
                                                     full.names = TRUE)))
-  saveDatasheet(cLib, rConfig, name = "core_RConfig")
+  saveDatasheet(cLib, rConfig[nrow(rConfig),], name = "core_RConfig")
 
   # TO DO: extract this info from input range map
   cSheet <- "ROFSim_CaribouRange"
