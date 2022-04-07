@@ -217,21 +217,28 @@ for (iteration in iterationSet) {
         raster(filter(InputRasters, CaribouVarID == "LandCoverRasterID")$File)
       }, error = function(cond) { stop("land cover can't be null") })
       
+      plcRas_max <- cellStats(plcRas, "max", na.rm = TRUE)
+      
       # Reclass landcover if needed
       # UI TO DO: allow user to input plcLU table (same format as plcToResType in caribouMetrics package). If table is specified, reclass regardless of whether the number of classes is <9.
       # TO DO: need better way of recognizing landcover class types - maybe just require user to specify? # of classes assumptions will potentially cause trouble on reduced landscapes where not all classes are represented.
-      if ((max(values(plcRas), na.rm = TRUE) <= 9)){
+      if ((plcRas_max <= 9)){
         warning(paste0("Assuming landcover classes are: ",paste(paste(resTypeCode$ResourceType,resTypeCode$code),collapse=",")))
-      }else if(is.element((max(values(plcRas), na.rm = TRUE)), c(28:30))){
+      }else if(is.element(plcRas_max, c(28:30))){
         #TO DO: add PLC legend file to caribouMetrics package, and report here.
         warning(paste0("Assuming Ontario provincial landcover classes: ",paste(paste(plcToResType$ResourceType,plcToResType$PLCCode),collapse=",")))
         plcRas[plcRas==30]=29
         plcRas <- reclassPLC(plcRas,plcToResType)
-      }else if((max(values(plcRas), na.rm = TRUE) == 39)){
+      }else if((plcRas_max == 39)){
         warning(paste0("Assuming national landcover classes: ",paste(paste(lccToResType$ResourceType,lccToResType$PLCCode),collapse=",")))
         plcRas <- reclassPLC(plcRas,lccToResType)
+      }else if(is.element(plcRas_max, 23:24)){
+        fnlcToResType <- read.csv(file.path(e$PackageDirectory, "FNLC_Lookup_table.csv"))
+        warning(paste0("Assuming far north landcover classes: ",paste(paste(fnlcToResType$ResourceType,fnlcToResType$PLCCode),collapse=",")))
+        plcRas <- reclassPLC(plcRas,fnlcToResType)
       }else{
-        stop("Landcover classification not recognized. Please specify...")
+        
+        stop("Landcover classification not recognized. Please specify...", "Max value is: ", plcRas_max)
       }
       
       eskerRas <- tryCatch({
