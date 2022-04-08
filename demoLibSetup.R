@@ -256,9 +256,13 @@ if (doRun) {
 }
 
 # scenarios - caribou - anthropogenic disturbance #############
-cbAnthroScn <- scenario(cProj, "Caribou - anthro", sourceScenario = cbCurScn)
+cbAnthroScn <- scenario(cProj, "Caribou - anthro")
 
 if (doRun) {
+  # dependencies from source scenario not updated if don't delete
+  delete(cbAnthroScn)
+  cbAnthroScn <- scenario(cProj, "Caribou - anthro", sourceScenario = cbCurScn)
+  
   dependency(cbAnthroScn, rcCurScn, remove = TRUE, force = TRUE)
   dependency(cbAnthroScn, rcFutScn)
   dependency(cbAnthroScn, datBaselineRes)
@@ -330,9 +334,12 @@ if (doRun) {
 }
 
 # scenarios - caribou - spades - anthro ###############
-cbSpdsScn <- scenario(cProj, "Caribou - spades - anthro", sourceScenario = cbAnthroScn)
-
+cbSpdsScn <- scenario(cProj, "Caribou - spades - anthro")
 if (doRun) {
+  # dependencies from source scenario not updated if don't delete
+  delete(cbSpdsScn)
+  cbSpdsScn <- scenario(cProj, "Caribou - spades - anthro", sourceScenario = cbAnthroScn)
+  
   # already depends on datAnthroRes and datBaselineRes from cbAnthroScn
   dependency(cbSpdsScn, datSpdsRes)
   mergeDependencies(cbSpdsScn) <- TRUE
