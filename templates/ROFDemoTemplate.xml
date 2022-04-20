@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<template
+  name="ROFDemo"
+  displayName="ROFDemo"
+  description="
+    {br}Demonstration library for the ROFSim SyncroSim package." 
+  location="https://drive.google.com/file/d/1SlMRnXluRaV21OsvhCPmOgHZDHUlmEYW/view?usp=sharing"
+  liveUpdate="True">
+</template>
