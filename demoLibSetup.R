@@ -507,3 +507,23 @@ for (nn in newFileNames) {
 tempDir <- filter(libProperties, property == "Temporary files:")
 tempDir <- as.character(tempDir$value)
 unlink(tempDir, recursive = TRUE, force = TRUE)
+
+# make a shifted version of proposed road for demonstration #===================
+# library(sf)
+# library(dplyr)
+# rof_roads <- read_sf(file.path(sourceData2, "/RoF_MNRF_2020.shp"))
+# missisa <- read_sf(file.path(sourceData2, "project_ranges.shp")) %>% 
+#   filter(RANGE_NAME == "Missisa") %>% 
+#   st_transform(st_crs(rof_roads))
+# 
+# # filter and shift roads by 50 km
+# prop_roads <- rof_roads %>% filter(layer == "RoF_Centerline") %>% 
+#   st_transform(st_crs(missisa)) %>% 
+#   st_filter(missisa) %>% 
+#   mutate(geometry = geometry + c(50000, 0)) %>% 
+#   st_set_crs(st_crs(missisa))
+# 
+# plot(missisa %>% st_geometry())
+# plot(prop_roads %>% st_geometry(), add = T, col = "red")
+# 
+# st_write(prop_roads, file.path(sourceData2, "ROF_road_shifted.shp"), append = FALSE)
