@@ -482,6 +482,7 @@ for (iteration in iterationSet) {
       } else {
         
         habitatUseDf <- habitatUseAll[[paste0("it_",iteration)]][[paste0("ts_",timestepSet[tt-1])]] 
+        habitatUseDf$Timestep <- timestep 
       }
       
       habitatUseAll[[paste0("it_",iteration)]][[paste0("ts_",timestep)]] <- 
