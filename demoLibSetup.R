@@ -260,7 +260,7 @@ cbAnthroScn <- scenario(cProj, "Caribou - anthro")
 
 if (doRun) {
   # dependencies from source scenario not updated if don't delete
-  delete(cbAnthroScn)
+  delete(cbAnthroScn, force = TRUE)
   cbAnthroScn <- scenario(cProj, "Caribou - anthro", sourceScenario = cbCurScn)
   
   dependency(cbAnthroScn, rcCurScn, remove = TRUE, force = TRUE)
@@ -337,7 +337,7 @@ if (doRun) {
 cbSpdsScn <- scenario(cProj, "Caribou - spades - anthro")
 if (doRun) {
   # dependencies from source scenario not updated if don't delete
-  delete(cbSpdsScn)
+  delete(cbSpdsScn, force = TRUE)
   cbSpdsScn <- scenario(cProj, "Caribou - spades - anthro", sourceScenario = cbAnthroScn)
   
   # already depends on datAnthroRes and datBaselineRes from cbAnthroScn
@@ -394,15 +394,14 @@ if(doRun){
   dependency(brdCurScn, rcCurScn)
   dependency(brdCurScn, datBaselineRes)
   
-  run(brdCurScn)
+  brdCurRes <- run(brdCurScn)
 }
 
 # Get summary of simulation times
-# purrr::map_dfr(lst(cbCurRes, cbAnthroRes, cbSpdsRes,
+# t(purrr::map_dfr(dplyr::lst(cbCurRes, cbAnthroRes, cbSpdsRes,
 #                    datBaselineRes, datAnthroRes, datSpdsRes),
 #                ~rsyncrosim::runLog(.x) %>%
-#                  stringr::str_extract("Total simulation .*")) %>%
-#   t()
+#                  stringr::str_extract("Total simulation .*")))
 
 # add legend to landcover - after map is created in UI ##########
 
