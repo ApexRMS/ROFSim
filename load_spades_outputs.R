@@ -21,7 +21,7 @@ myLib <- ssimLibrary()
 mySce <- scenario()
 
 # Source helper functions -------------------------------------------------
-
+source(file.path(e$PackageDirectory, "makeLCCFromCohortData_helper.R"))
 source(file.path(e$PackageDirectory, "helpers.R"))
 
 # Get all datasheets ------------------------------------------------------
@@ -124,36 +124,15 @@ extFiles <- datasheet(mySce, "ExternalFile", lookupsAsFactors = FALSE,
 
 for (theIter in iterationSet){
   print(theIter)
-  #theIter =2
+  #theIter =1
   # Load the spades object 
   spadesObjectPath <- spadesDatasheet %>% 
     filter(Iteration == theIter) %>% 
     pull(Filename)
   
   #sort(sapply(ls(), function(x) {object.size(get(x)) }))
-  
-  spadesObject <- qs::qread(spadesObjectPath)
-  
-  # Filter them
-  outputs <- outputs(spadesObject) %>% 
-    make_paths_relative("outputs") %>% 
-    filter(objectName %in% allVars$SpaDESSimObject) %>% 
-    filter(saveTime %in% timestepSet) %>% 
-    rename(Timestep = saveTime)
-  
-  rm(spadesObject)
-  
-  if("standAgeMap" %in% allVars$SpaDESSimObject){
-    outputs <- outputs %>% 
-      bind_rows(data.frame(objectName = "standAgeMap", 
-                           Timestep = timestepSet, 
-                           file = file.path(dirname(spadesObjectPath), 
-                                            paste0("standAgeMap_", timestepSet, ".tif"))))
-  }
-  
-  # For now, reconstruct the relative paths based on basenames
-  outputs$file <- file.path(dirname(spadesObjectPath), basename(outputs$file))
-  
+  outputs <- getSpadesOutputs(spadesObjectPath,timestepSet) %>% 
+    filter(objectName %in% allVars$SpaDESSimObject)  
   
   for (rowVar in seq_len(length.out = nrow(allVars))){
     print(rowVar)

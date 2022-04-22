@@ -1,13 +1,39 @@
+getSpadesOutputs<-function(spadesObjectPath,timestepSet){
+  dn <- dirname(spadesObjectPath)
+  #if outputs have already been extracted, use that and don't bother trying to find and open large .qs object
+  outputsPath = paste0(dn,"/outputs.csv")
+  if(file.exists(outputsPath)){
+    outputsRaw <- read.csv(outputsPath)
+  }else{
+    spadesObject <- qs::qread(spadesObjectPath)
+    outputsRaw <- outputs(spadesObject)
+    write.csv(outputsRaw,outputsPath)
+    rm(spadesObject) 
+  }
+  #Filter outputs
+  outputs<- outputsRaw %>% 
+    make_paths_relative("outputs") %>% 
+    filter(saveTime %in% timestepSet) %>% 
+    rename(Timestep = saveTime)
+  
+    outputs$file <-paste0(dirname(spadesObjectPath),"/",basename(outputs$file))
+    outputs <- outputs %>% 
+      bind_rows(data.frame(objectName = "standAgeMap", 
+                           Timestep = timestepSet, 
+                           file = file.path(dirname(spadesObjectPath), 
+                                            paste0("standAgeMap_", timestepSet, ".tif"))))
+    return(outputs)
+}
+
+
+
 ###############################################################################
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
-# Description:Function takes the output from landR, primarily the pixel group
-#             map and the cohort biomass, and converts them into the 5 dynamic
-#             land cover types used as covariates in the Ring of Fire RSPF,
-#             note that there are 11 covariates, but the majority are not 
-#             simulated by LandR. The function is made up of three broad steps
+# Description:Function combines information on leading species from landR output
+#             with stand density information from landcover to get leading species and density
+#             The function has two main steps
 #             1) Defining vegetation type; 2) defining the level of openness;
-#             and 3) updating natural disturbance cells based of burns created
-#             by firesense.
+#             and 3) combining the information into cover classes for forested cells.
 #
 # Required inputs: 
 #                 - The cohort data accessed from a sim object 
@@ -19,28 +45,31 @@
 #                     deciduous, or mixed and as dense, sparse, or open and the
 #                     associated land cover ID value
 # Outputs: 
-#         - An updated raster of the study area with all of the covariate 
-#           land cover types represented (both dynamic and static), saved out
-#           as a .tif (geotif) file.
+#         - An updated raster of forested areas.
 #
-# Author: C.E. Simpkins (based on code by Tati Micheletti)
+# Authors: Josie Hughes & C.E. Simpkins (based on code by Tati Micheletti)
 #
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
 ###############################################################################
-
-makeLCCfromCohortData <- function(cohortData,
+getLCCFromCohortData <- function(cohortData,
                                   pixelGroupMap,
                                   rstLCC,
-                                  lccClassTable,lccSparsenessTable){
+                                  lccClassTable,lccSparsenessTable, e){
   #cohortData=cohort_data
-  library(LandR)
   library(data.table)
   library(raster)
   
   ### Step 1: Define vegetation type ###
   #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
   # A) Assign type for each species based on equivalence table (using LandR)
-  sppEquivalencies <- LandR::sppEquivalencies_CA
+  if(requireNamespace("LandR", quietly = TRUE)){
+    sppEquivalencies <- LandR::sppEquivalencies_CA
+  } else {
+    # NOTE: this will not get updates added to LandR package but avoids dep on
+    # github only package
+    sppEquivalencies <- read.csv(file.path(e$PackageDirectory, "LandR_sppEquivalencies_CA.csv"))
+    sppEquivalencies <- as.data.table(sppEquivalencies)
+  }
   
   for (x in 1:length(unique(cohortData$speciesCode))) {
     cohortData[speciesCode == unique(cohortData$speciesCode)[x],
@@ -63,26 +92,40 @@ makeLCCfromCohortData <- function(cohortData,
                        fill = 0)
   
   # C) Mark pure and mixed stands based on a 75% threshold
-  cohortDataD[, pureDec := fifelse(deciduous >= 0.75, 1, 0)]
-  cohortDataD[, pureCon := fifelse(conifer >= 0.75, 1, 0)]
+  cohortDataD[, Deciduous := fifelse(deciduous >= 0.75, 1, 0)]
+  cohortDataD[, Conifer := fifelse(conifer >= 0.75, 1, 0)]
   cohortDataD[, standLeading := colnames(.SD)[max.col(.SD, ties.method="first")], 
-              .SDcols = c("pureDec", "pureCon")]
-  cohortDataD[, standLeading := fifelse(pureDec+pureCon == 0, "mixed", standLeading)]
+              .SDcols = c("Deciduous", "Conifer")]
+  cohortDataD[, standLeading := fifelse(Deciduous+Conifer == 0, "Mixed", standLeading)]
   
   # D) Simplifying
   cohortDataSim <- unique(cohortDataD[, c("pixelGroup", "standLeading")])
+
+  #get  leading species map 
+  finalDT  <- cohortDataSim
+  finalDT <- merge(finalDT, data.table(leadingClass = c(1,2,3), 
+                                       standLeading = c("Conifer", 
+                                                      "Deciduous", 
+                                                      "Mixed")),
+                   by = "standLeading", all.x = TRUE)
   
+  leadingClass <- SpaDES.tools::rasterizeReduced(reduced = finalDT, 
+                                                    fullRaster = pixelGroupMap, 
+                                                    newRasterCols = "leadingClass", 
+                                                    mapcode = "pixelGroup")
 
   ### Step 2: Define level of openness ###
   #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
   # A) Take original LCC classes and divide them into "dense" or "sparse"
+  # Note we this is currently only used to id dense classes that are eligible for transition.
+  # Assuming all other landcover classes remain static.
   sparsenessMap <- rstLCC
   
   sparsenessMap[!sparsenessMap[] %in% lccSparsenessTable[["LCCclass"]]] <- NA
   
   sparse <- lccSparsenessTable[["LCCclass"]][grep(pattern = "sparse", x = lccSparsenessTable[["sparseness"]])]
   open <- lccSparsenessTable[["LCCclass"]][grep(pattern = "open", x = lccSparsenessTable[["sparseness"]])]
-  dense <- lccSparsenessTable[["LCCclass"]][grep(pattern = "dense", x = lccSparsenessTable[["sparseness"]])]
+  dense <- lccSparsenessTable[["LCCclass"]][grep(pattern = "Treed", x = lccSparsenessTable[["sparseness"]])]
   
   # dense = 1; open = 2; sparse =  3
   sparsenessMap[sparsenessMap[] %in% dense] <- -1
@@ -93,29 +136,27 @@ makeLCCfromCohortData <- function(cohortData,
   
   sparsenessMap <- ratify(sparsenessMap)
   rat <- raster::levels(sparsenessMap)[[1]]
-  rat$sparseness[rat$ID==1]="dense"
+  rat$sparseness[rat$ID==1]="Treed"
   rat$sparseness[rat$ID==2]="open"
   rat$sparseness[rat$ID==3]="sparse"
   levels(sparsenessMap) <- rat
   names(sparsenessMap) <- "sparsenessMap"
-  
   sparsenessMapDT <- raster::unique(na.omit(data.table::data.table(
     getValues(stack(sparsenessMap, pixelGroupMap)))))
 
-  finalDT  <- merge(cohortDataSim, sparsenessMapDT, all.x = TRUE)
+  finalDT <- merge(cohortDataSim, sparsenessMapDT, all.x = TRUE)
   
   finalDT <- merge(finalDT, data.table(sparsenessMap = c(1,2,3), 
-                                       sparseness = c("dense", 
+                                       sparseness = c("Treed", 
                                                       "open", 
                                                       "sparse")),
                    by = "sparsenessMap", all.x = TRUE)
   finalDT=subset(finalDT,!is.na(sparseness))
-  finalDT[, standLeading  := paste(standLeading, sparseness, sep = "_")]
+  finalDT[, standLeading  := paste(standLeading, sparseness, sep = " ")]
   finalDT = merge(finalDT,lccClassTable,by="standLeading")  
   
-  #Pixel Groups assigned to more than one sparseness class. why?
+  #Pixel Groups assigned to more than one sparseness class?
   #subset(as.data.frame(table(finalDT$pixelGroup)),Freq>1)
-  #subset(finalDT,pixelGroup==2110)
 
   # Get the new classes to the LCC where they are supposed to be
   newLCCClass <- SpaDES.tools::rasterizeReduced(reduced = finalDT, 
@@ -126,10 +167,10 @@ makeLCCfromCohortData <- function(cohortData,
   DT <- data.table(pixelID = 1:ncell(newLCCClass),
                    getValues(stack(rstLCC, newLCCClass)))
   names(DT) <- c("pixelID", "LCC", "newLCC")
-  DT[, updatedLCC := fifelse(!is.na(newLCC), newLCC, newLCC)]
+  DT[, updatedLCC := fifelse(!is.na(newLCC), newLCC, LCC)]
   updatedLCCras <- raster::setValues(x = raster(rstLCC), 
                                      values = DT[["updatedLCC"]])
   updatedLCCras <- floor(updatedLCCras)
 
-  return(updatedLCCras)
+  return(stack(updatedLCCras,leadingClass))
 }

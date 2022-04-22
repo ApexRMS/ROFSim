@@ -89,11 +89,8 @@ landCoverName <- landCoverPth$names
 landCoverPth <- landCoverPth %>% 
   pull(Filename)
 
-
-
-#TODO: change names of polygons to study area. should Ranges be treated differently?
 # get projectPoly
-projectPolyPth <- filter(allParams$ExternalFile, PolygonsID == "Ranges") %>% 
+projectPolyPth <- filter(allParams$ExternalFile, PolygonsID == "Study Area") %>% 
   mutate(names = paste0(gsub(" ", "_", PolygonsID), 
                         "_iter_", Iteration,
                         "_ts_", Timestep))
@@ -151,10 +148,15 @@ if(nrow(linFeatsList) > 0){
   linFeatsListRast <- NULL
 }
 
+# get just roads for Bird models
+roadsOnly <- map(linFeatsListRast, ~map(., ~grep("road", .x, value = TRUE))) %>% 
+  map(discard, is_empty) %>%
+  flatten() %>% 
+  set_names(gsub("Linear_Features", "Roads", names(.)))
 
 # make other filenames into named list
 polyFiles <- allParams$ExternalFile %>% 
-  filter(!PolygonsID %in% c("Linear Features", "Ranges")) %>% 
+  filter(!PolygonsID %in% c("Linear Features", "Study Area")) %>% 
   mutate(names = paste0(gsub(" ", "_", PolygonsID), 
                         "_iter_", Iteration,
                         "_ts_", Timestep))
@@ -162,6 +164,11 @@ polyFiles <- allParams$ExternalFile %>%
 polyFiles <- polyFiles %>% 
   pull(File) %>% as.list() %>% 
   set_names(polyFiles$names)
+
+# get eskers for caribouHabitat separately so that it will have res of 400 while
+# others match landcover
+Eskers400 <- polyFiles[which(grepl("Esker", names(polyFiles)))] %>% 
+  set_names(gsub("Eskers", "Eskers400", names(.)))
 
 rasterFiles <- allParams$RasterFile %>% 
   filter(Filename != landCoverPth) %>% 
@@ -179,11 +186,15 @@ allSpatialInputs <- loadSpatialInputs(
   inputsList = splice(linFeatsListLines,
                       linFeatsListRast,
                       rasterFiles, 
-                      polyFiles) %>% compact(),
-  convertToRast = c(names(linFeatsListRast), 
-                    names(polyFiles)[which(grepl("Esker", names(polyFiles)))]),
+                      polyFiles, 
+                      roadsOnly, 
+                      Eskers400) %>% compact(),
+  convertToRast = c(names(roadsOnly),
+  names(polyFiles)[which(grepl("Esker", names(polyFiles)))]),
+  convertToRastDens = c(names(linFeatsListRast), 
+                    names(Eskers400)),
   useTemplate = c(names(linFeatsListRast), 
-                  names(polyFiles)[which(grepl("Esker", names(polyFiles)))])
+                  names(Eskers400))
 )
 
 # walk2(allSpatialInputs, names(allSpatialInputs), ~plot(.x, main = .y))

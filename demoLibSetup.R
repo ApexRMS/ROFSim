@@ -3,21 +3,23 @@
 library(rsyncrosim)
 
 # should scenarios be run or should existing results be used?
-doRun <- TRUE
+doRun <- F
 
 cDir <- "C:/Users/endicotts/Documents/gitprojects/ROFSyncSim/"
 sourceData <- "C:/Users/endicotts/Documents/gitprojects/ROFSyncSim/ROFDemo_data"
-iters <- c("ROF_CNRM-ESM2-1_SSP370_res125_rep03", "ROF_CNRM-ESM2-1_SSP370_res125_rep04")
+#iters <- c("ROF_CNRM-ESM2-1_SSP370_res125_rep03", "ROF_CNRM-ESM2-1_SSP370_res125_rep04")
 inPath <- file.path(sourceData, "SpaDESOutputs/iter/iter.qs")
 sourceData2 <- sourceData
 
-# sourceData = "C:/Users/HughesJo/Documents/InitialWork/OntarioFarNorth/RoFModel/"
-# cDir = paste0(sourceData,"/UI")
-# iters = c("ROF_CNRM-ESM2-1_SSP585_res125_rep02", "ROF_CNRM-ESM2-1_SSP370_res125_rep04")
-# inPath = file.path(sourceData, "SpaDESOutputs/v2/iter/iter.qs")
-# sourceData2 = "C:/Users/HughesJo/Documents/InitialWork/OntarioFarNorth/ROFData"
+# Ranges to use in projections
+rangesUse <- c("Missisa")
+ # sourceData = "C:/Users/HughesJo/Documents/InitialWork/OntarioFarNorth/RoFModel/"
+ # cDir = paste0(sourceData,"/UI")
+  iters = c("ROF_CanESM5_SSP370_run01", "ROF_CanESM5_SSP370_run02")
+ # inPath = file.path(sourceData, "SpaDESOutputs/v3reduced/iter/iter.qs")
+ # sourceData2 = "C:/Users/HughesJo/Documents/InitialWork/OntarioFarNorth/ROFData"
 
-libName <- "ROFDemoS7"
+libName <- "ROFDemoS1"
 
 # delete(paste0(cDir,"/",libName,".ssim"),force=T)
 
@@ -32,11 +34,17 @@ allScn <- scenario(cProj)
 allRes <- subset(allScn, allScn$isResult == "Yes")
 
 if (doRun) {
+  # Make a study area polygon that includes only the selected ranges
+  all_rngs <- sf::read_sf(file.path(sourceData2, "/project_ranges.shp"))  
+  sf::write_sf(dplyr::filter(all_rngs,RANGE_NAME %in% rangesUse),
+               file.path(sourceData2, "/study_area.shp"))
+  rm(all_rngs)
+  
   # Make sure the library uses the correct R installation
   rConfig <- datasheet(cLib, name = "core_RConfig")
   rConfig <- addRow(rConfig, c(ExePath = list.files(R.home("bin"), "Rscript",
                                                     full.names = TRUE)))
-  saveDatasheet(cLib, rConfig, name = "core_RConfig")
+  saveDatasheet(cLib, rConfig[nrow(rConfig),], name = "core_RConfig")
 
   # TO DO: extract this info from input range map
   cSheet <- "ROFSim_CaribouRange"
@@ -57,7 +65,8 @@ if (doRun) {
   cc <- data.frame(
     Name = c("Caribou Ranges", "Harvest", "Anthropogenic Disturbance",
              "Natural Disturbances", "Provincial Land Cover", "SpaDES Land Cover", 
-             "SpaDES Stand Age", "SpaDES Leading Type", "Linear Features", "Eskers")
+             "SpaDES Stand Age", "SpaDES Leading Type", "Linear Features", "Eskers", 
+             "Eskers400", "Roads")
   )
   cc$SpaDESSimObject[cc$Name == "SpaDES Stand Age"] <- "standAgeMap"
   saveDatasheet(cProj, cc, name = cSheet)
@@ -95,13 +104,15 @@ if (doRun) {
 
   cSheet <- "ROFSim_RasterFile"
   cc <- data.frame(RastersID = "Provincial Land Cover", 
-                   Filename = file.path(sourceData2, "plc250.tif"))
+                   Filename = file.path(sourceData2, "plc125.tif"))
   saveDatasheet(datContextScn, cc, name = cSheet, append = FALSE)
   # datasheet(datContextScn,cSheet)
 
   cSheet <- "ROFSim_ExternalFile"
   cc <- data.frame(PolygonsID = "Ranges", 
                    File = file.path(sourceData2, "/project_ranges.shp"))
+  cc <- rbind(cc, data.frame(PolygonsID = "Study Area", 
+                             File = file.path(sourceData2, "/study_area.shp")))
   saveDatasheet(datContextScn, cc, name = cSheet, append = FALSE)
   # datasheet(datContextScn,cSheet)
 }
@@ -132,9 +143,9 @@ if (doRun) {
 
   cSheet <- "ROFSim_RasterFile"
   cc <- data.frame(RastersID = "Natural Disturbances",
-                   Filename = file.path(sourceData2, "fireAFFES2020_250.tif"))
+                   Filename = file.path(sourceData2, "fireAFFES2020_125.tif"))
   cc <- rbind(cc, data.frame(RastersID = "Harvest", 
-                             Filename = file.path(sourceData2, "harvMNRF2018_250.tif")))
+                             Filename = file.path(sourceData2, "harvMNRF2018_125.tif")))
   cc$Timestep <- NA
   saveDatasheet(datBaselineScn, cc, name = cSheet, append = FALSE)
   # datasheet(datBaselineScn,cSheet)
@@ -175,7 +186,7 @@ if (doRun) {
   cSheet <- "ROFSim_RasterFile"
   cc <- data.frame(
     RastersID = "Anthropogenic Disturbance", Timestep = 2040,
-    Filename = file.path(sourceData2, "mines_ras250.tif")
+    Filename = file.path(sourceData2, "mines_ras125.tif")
   )
   saveDatasheet(datAnthroScn, cc, name = cSheet, append = FALSE)
   # datasheet(datAnthroScn,cSheet)
@@ -212,7 +223,7 @@ if (doRun) {
   # datasheet(cbCurScn,cSheet)
 
   cSheet <- "ROFSim_RunCaribouRange"
-  cc <- data.frame(Range = "Missisa", CoeffRange = "Missisa")
+  cc <- data.frame(Range = rangesUse, CoeffRange = rangesUse)
   saveDatasheet(cbCurScn, cc, name = cSheet)
   # datasheet(cbCurScn,cSheet)
 
@@ -220,12 +231,11 @@ if (doRun) {
   cc <- data.frame(
     LandCoverRasterID = "Provincial Land Cover",
     ProjectShapeFileID = "Ranges",
-    EskerShapeFileID = "Eskers",
     LinearFeatureShapeFileID = "Linear Features",
     NaturalDisturbanceRasterID = "Natural Disturbances",
     HarvestRasterID = "Harvest",
     AnthropogenicRasterID = "Anthropogenic Disturbance",
-    EskerRasterID = "Eskers",
+    EskerRasterID = "Eskers400",
     LinearFeatureRasterID = "Linear Features"
   )
   saveDatasheet(cbCurScn, cc, name = cSheet)
@@ -246,9 +256,13 @@ if (doRun) {
 }
 
 # scenarios - caribou - anthropogenic disturbance #############
-cbAnthroScn <- scenario(cProj, "Caribou - anthro", sourceScenario = cbCurScn)
+cbAnthroScn <- scenario(cProj, "Caribou - anthro")
 
 if (doRun) {
+  # dependencies from source scenario not updated if don't delete
+  delete(cbAnthroScn, force = TRUE)
+  cbAnthroScn <- scenario(cProj, "Caribou - anthro", sourceScenario = cbCurScn)
+  
   dependency(cbAnthroScn, rcCurScn, remove = TRUE, force = TRUE)
   dependency(cbAnthroScn, rcFutScn)
   dependency(cbAnthroScn, datBaselineRes)
@@ -259,12 +273,15 @@ if (doRun) {
 }
 
 # scenarios - import SpaDES ############
+# Note I have combined import and LCC from spades steps
 impSpdsScn <- scenario(cProj, "Import SpaDES")
 
 if (doRun) {
   # datasheet(impSpdsScn)
   cSheet <- "core_Pipeline"
-  cc <- data.frame(StageNameID = "Spades Import", RunOrder = 1)
+  cc <- data.frame(StageNameID = "Spades Import", RunOrder = 2)
+  cc <- rbind(cc,data.frame(StageNameID = "Generate LCC from Cohort Data", RunOrder = 1))
+  
   saveDatasheet(impSpdsScn, cc, name = cSheet)
   # datasheet(impSpdsScn,cSheet)
 
@@ -294,30 +311,6 @@ if (doRun) {
   }
 }
 
-# TO DO: figure out how to landcover legend table, stand age colours, etc.
-
-# scenarios - make LCC from SpaDES ############
-lccSpdsScn <- scenario(cProj, "Make LCC from SpaDES")
-
-if (doRun) {
-  dependency(lccSpdsScn, impSpdsScn)
-  mergeDependencies(lccSpdsScn) <- TRUE
-
-  cSheet <- "core_Pipeline"
-  cc <- data.frame(StageNameID = "Generate LCC from Cohort Data", RunOrder = 1)
-  saveDatasheet(lccSpdsScn, cc, name = cSheet)
-  # datasheet(lccSpdsScn,cSheet)
-
-  lccSpdsRes <- run(lccSpdsScn)
-} else {
-  # get results scnID if it exists
-  scnID <- subset(allRes, grepl("Make LCC from SpaDES \\(", allRes$name))$scenarioId
-
-  if (length(scnID) > 0) {
-    lccSpdsRes <- scenario(cProj, max(scnID))
-  }
-}
-
 # data preparation for SpaDES #=================================
 datSpdsScn <- scenario(cProj, "data - anthro - SpaDES")
 
@@ -327,7 +320,6 @@ if (doRun) {
   saveDatasheet(datSpdsScn, cc, name = cSheet)
 
   dependency(datSpdsScn, datContextScn)
-  dependency(datSpdsScn, lccSpdsRes)
   dependency(datSpdsScn, impSpdsRes)
   mergeDependencies(datSpdsScn) <- TRUE
 
@@ -342,9 +334,12 @@ if (doRun) {
 }
 
 # scenarios - caribou - spades - anthro ###############
-cbSpdsScn <- scenario(cProj, "Caribou - spades - anthro", sourceScenario = cbAnthroScn)
-
+cbSpdsScn <- scenario(cProj, "Caribou - spades - anthro")
 if (doRun) {
+  # dependencies from source scenario not updated if don't delete
+  delete(cbSpdsScn, force = TRUE)
+  cbSpdsScn <- scenario(cProj, "Caribou - spades - anthro", sourceScenario = cbAnthroScn)
+  
   # already depends on datAnthroRes and datBaselineRes from cbAnthroScn
   dependency(cbSpdsScn, datSpdsRes)
   mergeDependencies(cbSpdsScn) <- TRUE
@@ -353,12 +348,11 @@ if (doRun) {
   cc <- data.frame(
     LandCoverRasterID = "SpaDES Land Cover",
     ProjectShapeFileID = "Ranges",
-    EskerShapeFileID = "Eskers",
     LinearFeatureShapeFileID = "Linear Features",
     NaturalDisturbanceRasterID = "SpaDES Stand Age",
     HarvestRasterID = "Harvest",
     AnthropogenicRasterID = "Anthropogenic Disturbance",
-    EskerRasterID = "Eskers",
+    EskerRasterID = "Eskers400",
     LinearFeatureRasterID = "Linear Features"
   )
   saveDatasheet(cbSpdsScn, cc, name = cSheet, append = FALSE)
@@ -367,12 +361,47 @@ if (doRun) {
   cbSpdsRes <- run(cbSpdsScn)
 }
 
+# Bird Model setup #=====================
+# Make BirdSpecies table with names from model files in sourceData
+
+if(doRun){
+  # ***Assumes species code is first 4 characters of model file name***
+  fls <-  list.files(file.path(sourceData, "ROFBirdModels"),
+                     pattern = ".rds")
+  bird_sp <- regmatches(fls, regexpr("....", fls))
+  
+  cSheet <- "BirdSpecies"
+  cc <- data.frame(SpeciesCode = bird_sp)
+  saveDatasheet(cProj, cc, name = cSheet, append = FALSE)
+}
+
+
+brdCurScn <- scenario(cProj, "Birds - current")
+
+if(doRun){
+  cSheet <- "core_Pipeline"
+  cc <- data.frame(StageNameID = "Bird Models", RunOrder = 1)
+  saveDatasheet(brdCurScn, cc, name = cSheet)
+  
+  cSheet <- "RunBirdSpecies"
+  cc <- data.frame(BirdSpecies = "ALFL")
+  saveDatasheet(brdCurScn, cc, name = cSheet, append = FALSE)
+  
+  cSheet <- "BirdModelDir"
+  cc <- data.frame(BirdModelDir = file.path(sourceData, "ROFBirdModels"))
+  saveDatasheet(brdCurScn, cc, name = cSheet, append = FALSE)
+  
+  dependency(brdCurScn, rcCurScn)
+  dependency(brdCurScn, datBaselineRes)
+  
+  brdCurRes <- run(brdCurScn)
+}
+
 # Get summary of simulation times
-# purrr::map_dfr(lst(cbCurRes, cbAnthroRes, cbSpdsRes,
+# t(purrr::map_dfr(dplyr::lst(cbCurRes, cbAnthroRes, cbSpdsRes,
 #                    datBaselineRes, datAnthroRes, datSpdsRes),
 #                ~rsyncrosim::runLog(.x) %>%
-#                  stringr::str_extract("Total simulation .*")) %>%
-#   t()
+#                  stringr::str_extract("Total simulation .*")))
 
 # add legend to landcover - after map is created in UI ##########
 
@@ -382,26 +411,27 @@ library(RColorBrewer)
 library(dplyr)
 library(readr)
 library(raster)
+source("legendHelpers.R")
 
 # example map
 filepath(cLib)
-# lccSpdsRes = scenario(cProj,27)
-scenarioId(lccSpdsRes)
+# impSpdsRes = scenario(cProj,27)
+scenarioId(impSpdsRes)
 # mapPath = paste0(filepath(cLib),".input/Scenario-",scenarioId(lccSpdsRes),"/ROFSim_RasterFile/PLC_it_1_ts_2020.tif")
-iMap <- datasheetRaster(lccSpdsRes, "ROFSim_RasterFile", timestep = 2020, 
+iMap <- datasheetRaster(impSpdsRes, "ROFSim_RasterFile", timestep = 2020, 
                         iteration = 1, 
                         subset = expression(RastersID == "SpaDES Land Cover"))
 fTab <- freq(iMap)
 fTab
 
 # name of the map that needs a legend
-mapName <- "ChangeView"
+# NOTE: this map must be made from the UI.
+mapName <- "SpaDESLandcover"
 
 # Setting path to custom legend
 legendPath <- "."
 fileName <- "colormap_mapID_ROFSim_InputRastersMap-IDtemplateC.txt"
 fileNameMod <- "colormap_mapID_ROFSim_InputRastersMap-ID.txt"
-
 
 # get the list of charts to identify which one needs a legend
 myCharts <- datasheet(cProj,
@@ -418,8 +448,9 @@ mapId <- myChart$MapID[1]
 mapId <- paste0("map", as.character(mapId))
 rasterId <- myChart$Criteria[1]
 rasterId <- gsub("Map2", "Map", rasterId, fixed = TRUE)
-rasterId <- c(44, 18) # abs(parse_number(strsplit(rasterId,"|",fixed=T)[[1]]))
+rasterId <- c(52) # abs(parse_number(strsplit(rasterId,"|",fixed=T)[[1]]))
 # empirically, 18 and 45 sort of work.
+# NOTE: ask Leo how to set legend. 
 
 newFileName <- gsub("mapID", mapId, fileNameMod)
 newFileNames <- list()
@@ -464,6 +495,7 @@ close(fileConn)
 
 
 # copy the custom legend to the legend directory
+dir.create(legendDir)
 sourceFile <- paste(legendPath, fileNameMod, sep = "/")
 for (nn in newFileNames) {
   destFile <- paste(legendDir, nn, sep = "/")
@@ -474,3 +506,23 @@ for (nn in newFileNames) {
 tempDir <- filter(libProperties, property == "Temporary files:")
 tempDir <- as.character(tempDir$value)
 unlink(tempDir, recursive = TRUE, force = TRUE)
+
+# make a shifted version of proposed road for demonstration #===================
+# library(sf)
+# library(dplyr)
+# rof_roads <- read_sf(file.path(sourceData2, "/RoF_MNRF_2020.shp"))
+# missisa <- read_sf(file.path(sourceData2, "project_ranges.shp")) %>% 
+#   filter(RANGE_NAME == "Missisa") %>% 
+#   st_transform(st_crs(rof_roads))
+# 
+# # filter and shift roads by 50 km
+# prop_roads <- rof_roads %>% filter(layer == "RoF_Centerline") %>% 
+#   st_transform(st_crs(missisa)) %>% 
+#   st_filter(missisa) %>% 
+#   mutate(geometry = geometry + c(50000, 0)) %>% 
+#   st_set_crs(st_crs(missisa))
+# 
+# plot(missisa %>% st_geometry())
+# plot(prop_roads %>% st_geometry(), add = T, col = "red")
+# 
+# st_write(prop_roads, file.path(sourceData2, "ROF_road_shifted.shp"), append = FALSE)

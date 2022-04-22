@@ -2,6 +2,42 @@
 
 library(rsyncrosim)
 
+# check dependencies are installed and install missing if possible
+dep_chk <- function(pkgs = c("caribouMetrics", "rsyncrosim", "RColorBrewer", 
+                             "readr", "qs", "magrittr", "SpaDES.core", 
+                             "SpaDES.tools", "gbm", "ggplot2", "raster", 
+                             "dplyr", "data.table", "sf", "purrr", "tidyr", 
+                             "tidyselect", "pfocal")){
+  chk <- vapply(pkgs, requireNamespace, FUN.VALUE = logical(1L), quietly = TRUE)
+  
+  miss <- names(chk)[which(!chk)]
+  
+  cust_pkgs <- c("caribouMetrics", "rsyncrosim", "pfocal")
+  
+  if(any(cust_pkgs %in% miss)){
+    stop("Required packages ", 
+         paste0(miss[which(miss %in% cust_pkgs)],
+                collapse = ", "), 
+         " are missing. See installation instructions at:\n",
+         "https://landscitech.github.io/caribouMetrics/articles/UI_help.html ")
+  } else if(length(miss) > 0){
+    install.packages(miss)
+    
+    chk <- vapply(pkgs, requireNamespace, FUN.VALUE = logical(1L), quietly = TRUE)
+    
+    miss <- names(chk)[which(!chk)]
+    
+    if(length(miss) > 0){
+      stop("Required packages ", paste0(miss, collapse = ", "), 
+           " are missing and could not be installed")
+    }
+  } else {
+    message("dependencies checked")
+  }
+}
+
+dep_chk()
+
 # RSYNCROSIM helpers ------------------------------------------------------
 
 # Function to process optional arguments
