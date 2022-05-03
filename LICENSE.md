@@ -5,7 +5,7 @@ Crown Copyright, Government of Canada, and distributed under the GPL3 license.
 
 Copyright (C) Her Majesty the Queen in Right of Canada as represented by the Minister of the Environment 2022/(C) Sa Majesté la Reine du chef du Canada représentée par le ministre de l'Environnement 2022.
 
-This is a derivative of work copyrighted by ApexRMS 2021 and distributed under an MIT License (included below). 
+This is a derivative of work copyrighted by ApexRMS 2021 and distributed under an MIT License (included below). The version written by ApexRMS is stored in the branch: old-version-apexrms.
 
 GNU General Public License
 ==========================
