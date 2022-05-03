@@ -165,28 +165,6 @@ fillWildcardITER <- function(x, fill){
   return(x)
 }
 
-# Function to discriminate raster/vectors inputs
-# TODO this might become obsolete
-selectInputs <- function(rasters, vectors, column){
-  
-  columnRas <- paste0(column, "Ras")
-  columnVec <- paste0(column, "Vec")
-  
-  if(is.null(rasters[[columnRas]])){
-    if(is.null(vectors[[columnVec]])){
-      stop("Both esker vector and raster inputs are unspecified - please specify one")
-    } else {
-      theFile <- st_read(vectors[[columnVec]])
-    }
-  } else {
-    if(!is.null(vectors[[columnVec]])){
-      message("Both raster and vector outputs have been specified. Loading raster.")
-    }
-    theFile <- raster(rasters[[columnRas]])
-  }
-  return(theFile)
-}
-
 make_paths_relative <- function(theTable, folder){
   projDir <- theTable[["file"]][[1]] %>%
     strsplit(., folder) %>%
