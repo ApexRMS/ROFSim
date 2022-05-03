@@ -101,12 +101,9 @@ projectPolyPth <- projectPolyPth$File
 
 # get linear features and make sublists that are appropriate for timesteps 
 
-# TODO: need an indicator of whether a type of linear feature existed before ie
-# if there are roads and rail at ts 1 and new roads are added at ts 2 then the
-# rail should be combined with both. could maybe just always combine linearFeats
-# that are time step 0 and user needs to know to give a specific timestep if
-# they want to overwrite it later. This only works if only one type of linFeat
-# changes overtime
+# Always combines linearFeats that are time step 0 and user needs to know to
+# give a specific timestep if they want to overwrite it later. This only works
+# if only one type of linFeat changes overtime
 linFeatsList <- filter(allParams$ExternalFile, PolygonsID == "Linear Features")
 
 if(nrow(linFeatsList) > 0){
