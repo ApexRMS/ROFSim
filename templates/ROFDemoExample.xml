@@ -1,9 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<template
-  name="ROFDemoExample"
-  displayName="ROFDemoExample"
-  description="
-    {br}Demonstration library for the ROFSim SyncroSim package." 
-  location="https://s3.us-west-2.amazonaws.com/apexrms.com.syncrosim.templates/ROFSim/v1.0.3/ROFDemoExample.zip"
-  liveUpdate="True">
-</template>
