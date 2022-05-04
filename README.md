@@ -1,5 +1,5 @@
 ## ROFSim
-SyncroSim prototype Package for simulating wildlife responses to landscape change in the Ring of Fire (RoF) region. The Package currently includes methods for integrating SpaDES, LandR and FireSense projections with Caribou Habitat RSF models in the `caribouMetrics` package and bird density models from trained model objects.
+SyncroSim prototype Package for simulating wildlife responses to landscape change in the Ring of Fire (RoF) region. The Package currently provides a user interface with methods for integrating SpaDES, LandR and FireSense projections with Caribou Habitat RSF models in the `caribouMetrics` package and bird density models from trained model objects.
 
 ## Installation and User guide
 Installation and set up of the Package are covered in the [User Interface Help](https://landscitech.github.io/caribouMetrics/articles/UI_help.html) vignette. 
@@ -10,4 +10,7 @@ A video tutorial [presentation](https://drive.google.com/file/d/1CwnPpIjPI0P6wG2
 Input data needed to run the ROFSim Package models is provided in several Google Drive folders at present:
 
 [ROF Demo Data](https://drive.google.com/file/d/1fkH66AlccUSDljet-ZASOuuBKHX0C4qz/view?usp=sharing)
-[SpaDES outputs](https://drive.google.com/file/d/1OVexzRZbTRCLnWAnHr_8k7GxEcQ_nRc8/view?usp=sharing) 
+
+[SpaDES Outputs](https://drive.google.com/file/d/1OVexzRZbTRCLnWAnHr_8k7GxEcQ_nRc8/view?usp=sharing) 
+
+[Bird Model Objects](https://drive.google.com/file/d/1q-qu2Lq0xg5Rm4WQxiwgV4U8fx3zfgxf/view?usp=sharing)
