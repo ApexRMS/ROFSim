@@ -789,7 +789,6 @@
     
     <!--Maps Layout-->
     <layout name="corestimeforms_Maps" configurationSheet="ROFSim_RunControl">
-      <!-- TODO add colorMapSource="stsim_TransitionType" -->
       <item name="InputRastersMap" displayName="Rasters Variables" dataSheet="RasterFile" column="Filename" filter="RastersID" />
       <item name="OutputRastersMap2" displayName="Disturbance (Spatial)" dataSheet="OutputSpatialDisturbance" column="FileName" filter="MetricTypeDistID" />
       <item name="OutputRastersMap" displayName="Habitat Use (Spatial)" dataSheet="OutputSpatialHabitat" column="FileName" filter="SeasonID" />
