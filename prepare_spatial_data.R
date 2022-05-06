@@ -1,5 +1,8 @@
 # ROFSim - Transformer 0 - Prepare Spatial Data
 
+# Set transformer name
+transformerName <-"Prepare Spatial Data"
+
 # Packages ----------------------------------------------------------------
 
 library(rsyncrosim)
@@ -218,7 +221,7 @@ walk2(allSpatialInputs, names(allSpatialInputs), writeToFile,
 
 # make tables to save to datasheet
 FilesOut <- data.frame(
-  TransformerID = NA,
+  TransformerID = transformerName,
   Iteration = regmatches(names(allSpatialInputs),
                          regexpr("(?<=_iter_)NA|(?<=_iter_)\\d*",
                                  names(allSpatialInputs), perl = TRUE)),

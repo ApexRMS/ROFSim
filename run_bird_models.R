@@ -1,4 +1,9 @@
 # ROFSim - Transformer 4 - Run Bird Models
+
+# Set transformer name
+transformerName <-"Bird Models"
+
+# Packages ----------------------------------------------------------------
 library(rsyncrosim)
 library(raster)
 library(sf)
@@ -6,6 +11,7 @@ library(dplyr)
 library(tidyr)
 library(gbm)
 
+# Load Environment --------------------------------------------------------
 localDebug = F
 if(!localDebug){
   # Load environment

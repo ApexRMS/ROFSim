@@ -1,5 +1,8 @@
 # ROFSim - Transformer 3 - Run Caribou Model
 
+# Set transformer name
+transformerName <-"Caribou Habitat"
+
 # Packages ----------------------------------------------------------------
 
 library(rsyncrosim)
