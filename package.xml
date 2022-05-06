@@ -381,6 +381,7 @@
       <pipeline>
 
         <!--datafeed name="DataSummary" /-->
+        <datafeed name="RunControl" />
         <datafeed name="RasterFile" />
         <datafeed name="ExternalFile" />
 
